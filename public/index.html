@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Облако слов — ведущий</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <img src="/logo.png" alt="Малахитовое детство" class="logo-main">
+  </header>
+
+  <main class="container">
+    <!-- Экран настройки -->
+    <section id="setupScreen" class="card">
+      <h1 class="title">Облако слов</h1>
+      <p class="subtitle">Задайте вопрос — гости ответят одним словом</p>
+
+      <label class="field-label" for="questionInput">Вопрос аудитории</label>
+      <input type="text" id="questionInput" class="input" placeholder="Например: Каким вы видите наш проект?">
+
+      <button id="createBtn" class="btn">Создать облако</button>
+    </section>
+
+    <!-- Экран комнаты -->
+    <section id="roomScreen" class="card" hidden>
+      <p class="room-question" id="roomQuestion"></p>
+      <p class="room-hint">Введите код на странице гостя:</p>
+      <div class="code-display" id="codeDisplay"></div>
+
+      <div class="qr-wrap">
+        <div id="qrcode"></div>
+        <p class="qr-hint">Наведите камеру телефона</p>
+      </div>
+
+      <h2 class="cloud-title">Облако слов</h2>
+      <div id="cloudBox" class="cloud-box"></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <img src="/logo-dm.png" alt="Дворец молодёжи" class="logo-dm">
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentCode = null;
+
+    const setupScreen = document.getElementById('setupScreen');
+    const roomScreen = document.getElementById('roomScreen');
+    const questionInput = document.getElementById('questionInput');
+    const createBtn = document.getElementById('createBtn');
+    const roomQuestion = document.getElementById('roomQuestion');
+    const codeDisplay = document.getElementById('codeDisplay');
+    const qrcodeDiv = document.getElementById('qrcode');
+    const cloudBox = document.getElementById('cloudBox');
+
+    createBtn.addEventListener('click', () => {
+      const q = questionInput.value.trim();
+      if (!q) {
+        questionInput.focus();
+        return;
+      }
+      socket.emit('createCloud', { question: q });
+    });
+
+    socket.on('cloudCreated', ({ code, question }) => {
+      currentCode = code;
+      setupScreen.hidden = true;
+      roomScreen.hidden = false;
+
+      roomQuestion.textContent = question;
+      codeDisplay.textContent = code;
+
+      qrcodeDiv.innerHTML = '';
+      new QRCode(qrcodeDiv, {
+        text: window.location.origin + '/guest?code=' + code,
+        width: 180,
+        height: 180,
+        colorDark: '#0F4D3A',
+        colorLight: '#FFFFFF'
+      });
+    });
+
+    socket.on('cloudUpdate', ({ code, words }) => {
+      if (code !== currentCode) return;
+      renderCloud(words);
+    });
+
+    function renderCloud(words) {
+      cloudBox.innerHTML = '';
+      const shuffled = words.slice().sort(() => Math.random() - 0.5);
+      shuffled.forEach(({ word, count }) => {
+        const span = document.createElement('span');
+        span.className = 'cloud-word';
+        if (Math.random() < 0.4) span.classList.add('gold');
+        span.style.fontSize = (16 + count * 8) + 'px';
+        span.textContent = word;
+        cloudBox.appendChild(span);
+      });
+    }
+  </script>
+</body>
+</html>

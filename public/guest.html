@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Облако слов — гость</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="header">
+    <img src="/logo.png" alt="Малахитовое детство" class="logo-main small">
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h1 class="title">Ваше слово</h1>
+      <p class="subtitle">Ответьте одним словом — оно появится в облаке</p>
+
+      <label class="field-label" for="codeInput">Код комнаты</label>
+      <input type="text" id="codeInput" class="input" inputmode="numeric" maxlength="6" placeholder="XXXXXX">
+
+      <label class="field-label" for="wordInput">Ваше слово</label>
+      <input type="text" id="wordInput" class="input" maxlength="40" placeholder="Одно слово">
+
+      <button id="sendBtn" class="btn">Отправить</button>
+      <p id="statusMsg" class="status" hidden></p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <img src="/logo-dm.png" alt="Дворец молодёжи" class="logo-dm">
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const params = new URLSearchParams(window.location.search);
+    const urlCode = params.get('code') || '';
+
+    const codeInput = document.getElementById('codeInput');
+    const wordInput = document.getElementById('wordInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    if (urlCode) {
+      codeInput.value = urlCode;
+      codeInput.readOnly = true;
+      wordInput.focus();
+    }
+
+    function send() {
+      const code = codeInput.value.trim();
+      const word = wordInput.value.trim();
+
+      if (!/^\d{6}$/.test(code)) {
+        showStatus('Введите код комнаты — 6 цифр', true);
+        return;
+      }
+      if (!word) {
+        showStatus('Введите слово', true);
+        return;
+      }
+
+      socket.emit('submitWord', { code, word });
+      wordInput.value = '';
+      showStatus('Слово отправлено!', false);
+    }
+
+    function showStatus(text, isError) {
+      statusMsg.hidden = false;
+      statusMsg.textContent = text;
+      statusMsg.classList.toggle('error', isError);
+    }
+
+    sendBtn.addEventListener('click', send);
+    wordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') send();
+    });
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') wordInput.focus();
+    });
+  </script>
+</body>
+</html>
