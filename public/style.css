@@ -1,10 +1,10 @@
 :root {
-  --bg-main: #0F4D3A;
-  --bg-second: #1B6B4F;
-  --accent-teal: #2AB3A6;
-  --accent-gold: #F2B705;
-  --text-white: #FFFFFF;
-  --text-soft: #C7E6DC;
+  --bg-main: #D1EDED;
+  --bg-second: #FFFFFF;
+  --accent-teal: #91D0B8;
+  --accent-gold: #FFC219;
+  --text-white: #004D3D;
+  --text-soft: #1C8670;
 }
 
 * {
@@ -92,13 +92,13 @@ body {
 }
 
 .input::placeholder {
-  color: rgba(199, 230, 220, 0.55);
+  color: var(--bg-main);
 }
 
 .btn {
   margin-top: 24px;
   background: var(--accent-gold);
-  color: var(--bg-main);
+  color: var(--bg-second);
   border: none;
   border-radius: 12px;
   padding: 16px 32px;
