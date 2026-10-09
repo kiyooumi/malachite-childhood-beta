@@ -15,11 +15,14 @@
 
 body {
   background-image: url("/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: #D1EDED;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: 'Montserrat', sans-serif;
-  background: var(--bg-main);
   color: var(--text-white);
 }
 
