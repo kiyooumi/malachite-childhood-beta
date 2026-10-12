@@ -1,107 +1,337 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Облако слов — ведущий</title>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Облако слов — Малахитовое детство</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
-<body>
-  <header class="header">
-    <img src="/logo.png" alt="Малахитовое детство" class="logo-main">
-  </header>
+<body class="state-waiting">
 
-  <main class="container">
-    <!-- Экран настройки -->
-    <section id="setupScreen" class="card">
-      <h1 class="title">Облако слов</h1>
-      <p class="subtitle">Задайте вопрос — гости ответят одним словом</p>
+  <!-- ============ ЭКРАН НАСТРОЙКИ ============ -->
+  <section id="setupScreen" class="setup-screen">
+    <div class="setup-card">
+      <img src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
+      <h1 class="setup-title">Облако слов</h1>
+      <p class="setup-subtitle">Задайте вопрос — гости ответят одним словом</p>
 
-      <label class="field-label" for="questionInput">Вопрос аудитории</label>
-      <input type="text" id="questionInput" class="input" placeholder="Например: Каким вы видите наш проект?">
+      <label class="label" for="questionInput">Вопрос аудитории</label>
+      <input id="questionInput" class="input" type="text"
+             placeholder="Например: Каким должно быть детство?" maxlength="200" />
+      <button id="createBtn" class="btn" type="button">Создать облако</button>
 
-      <button id="createBtn" class="btn">Создать облако</button>
-    </section>
+      <p class="setup-hint">После создания появится код и QR для гостей</p>
+    </div>
+  </section>
 
-    <!-- Экран комнаты -->
-    <section id="roomScreen" class="card" hidden>
-      <p class="room-question" id="roomQuestion"></p>
-      <p class="room-hint">Введите код на странице гостя:</p>
-      <div class="code-display" id="codeDisplay"></div>
+  <!-- ============ ЭКРАН КОМНАТЫ ============ -->
+  <section id="roomScreen" class="room-screen" hidden>
 
-      <div class="qr-wrap">
-        <div id="qrcode"></div>
-        <p class="qr-hint">Сканируйте QR-код и отправьте сообщение!</p>
+    <!-- ШАПКА -->
+    <header class="room-header">
+      <div class="header-left">
+        <h2 id="questionBanner" class="question-text">—</h2>
+        <p class="header-hint">Наведи на QR-код и отправь сообщение</p>
+        <p class="stats-line">
+          <span id="statWords">0</span> слов ·
+          <span id="statPeople">0</span> участников
+        </p>
       </div>
 
-      <h2 class="cloud-title">Облако слов</h2>
-      <div id="cloudBox" class="cloud-box"></div>
-    </section>
-  </main>
+      <div class="header-right">
+        <div class="join-label">ПРИСОЕДИНЯЙТЕСЬ</div>
+        <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
+        <div id="codeValue" class="code-value">------</div>
+        <div id="qrcode" class="qr-box"></div>
+      </div>
+    </header>
 
-  <footer class="footer">
-    <p>2026 Дворец Молодёжи</p>
-  </footer>
+    <!-- ОБЛАСТЬ ОБЛАКА -->
+    <main class="cloud-area">
+      <div id="cloud" class="cloud">
+        <div class="cloud-empty">Ждём слова от гостей…</div>
+      </div>
+      <div id="lockedOverlay" class="locked-overlay" hidden>
+        Приём слов приостановлен
+      </div>
+    </main>
+
+    <!-- ПУЛЬТ -->
+    <div class="control-bar">
+      <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
+      <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
+      <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
+      <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
+      <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
+      <div class="manual-add">
+        <input id="manualInput" class="input input-small" type="text"
+               placeholder="Добавить слово вручную" maxlength="30" />
+        <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
+      </div>
+    </div>
+
+    <!-- ОВЕРЛЕЙ: ПОЛНОЭКРАННЫЙ QR -->
+    <div id="qrOverlay" class="overlay" hidden>
+      <div class="overlay-inner">
+        <div class="overlay-title">Отсканируйте QR-код</div>
+        <div id="qrBig" class="qr-big"></div>
+        <div class="overlay-code" id="codeBig">------</div>
+        <a id="joinLinkBig" class="join-link join-link-big" href="#" target="_blank" rel="noopener">—</a>
+        <button id="btnCloseQr" class="btn" type="button">Вернуть облако</button>
+      </div>
+    </div>
+
+    <!-- ОВЕРЛЕЙ: ТОП-3 -->
+    <div id="topOverlay" class="overlay" hidden>
+      <div class="overlay-inner">
+        <div class="overlay-title">Топ-3 слова</div>
+        <ol id="topList" class="top-list"></ol>
+        <button id="btnCloseTop" class="btn" type="button">Вернуть облако</button>
+      </div>
+    </div>
+
+  </section>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    let currentCode = null;
 
+    // Элементы
     const setupScreen = document.getElementById('setupScreen');
-    const roomScreen = document.getElementById('roomScreen');
+    const roomScreen  = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
-    const createBtn = document.getElementById('createBtn');
-    const roomQuestion = document.getElementById('roomQuestion');
-    const codeDisplay = document.getElementById('codeDisplay');
-    const qrcodeDiv = document.getElementById('qrcode');
-    const cloudBox = document.getElementById('cloudBox');
+    const createBtn   = document.getElementById('createBtn');
+    const questionBanner = document.getElementById('questionBanner');
+    const codeValue   = document.getElementById('codeValue');
+    const qrcodeEl    = document.getElementById('qrcode');
+    const cloudEl     = document.getElementById('cloud');
+    const statWords   = document.getElementById('statWords');
+    const statPeople  = document.getElementById('statPeople');
+    const joinLink    = document.getElementById('joinLink');
 
+    const btnLock     = document.getElementById('btnLock');
+    const btnFullQr   = document.getElementById('btnFullQr');
+    const btnTop3     = document.getElementById('btnTop3');
+    const btnCsv      = document.getElementById('btnCsv');
+    const btnClear    = document.getElementById('btnClear');
+    const manualInput = document.getElementById('manualInput');
+    const btnManualAdd = document.getElementById('btnManualAdd');
+
+    const qrOverlay   = document.getElementById('qrOverlay');
+    const qrBig       = document.getElementById('qrBig');
+    const codeBig     = document.getElementById('codeBig');
+    const joinLinkBig = document.getElementById('joinLinkBig');
+    const btnCloseQr  = document.getElementById('btnCloseQr');
+
+    const topOverlay  = document.getElementById('topOverlay');
+    const topList     = document.getElementById('topList');
+    const btnCloseTop = document.getElementById('btnCloseTop');
+
+    const lockedOverlay = document.getElementById('lockedOverlay');
+
+    // Состояние
+    let currentCode = null;
+    let currentWords = [];
+    let isLocked = false;
+    let hasFirstWord = false;
+    let qrMain = null;
+    let qrBigInstance = null;
+
+    // === Создание облака ===
     createBtn.addEventListener('click', () => {
       const q = questionInput.value.trim();
-      if (!q) {
-        questionInput.focus();
-        return;
-      }
-      socket.emit('createCloud', { question: q });
+      if (!q) { questionInput.focus(); return; }
+      socket.emit('createCloud', q);
+    });
+    questionInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') createBtn.click();
     });
 
+    // === Создано ===
     socket.on('cloudCreated', ({ code, question }) => {
       currentCode = code;
+      currentWords = [];
+      hasFirstWord = false;
+      isLocked = false;
+      document.body.classList.add('state-waiting');
+      document.body.classList.remove('state-cloud');
+
       setupScreen.hidden = true;
       roomScreen.hidden = false;
 
-      roomQuestion.textContent = question;
-      codeDisplay.textContent = code;
+      questionBanner.textContent = question;
+      codeValue.textContent = code;
+      codeBig.textContent = code;
 
-      qrcodeDiv.innerHTML = '';
-      new QRCode(qrcodeDiv, {
-        text: window.location.origin + '/guest?code=' + code,
-        width: 180,
-        height: 180,
-        colorDark: '#0F4D3A',
-        colorLight: '#FFFFFF'
+      const guestUrl = window.location.origin + '/guest?code=' + code;
+      joinLink.textContent = guestUrl;
+      joinLink.href = guestUrl;
+      joinLinkBig.textContent = guestUrl;
+      joinLinkBig.href = guestUrl;
+
+      // Главный QR
+      qrcodeEl.innerHTML = '';
+      qrMain = new QRCode(qrcodeEl, {
+        text: guestUrl, width: 220, height: 220,
+        colorDark: '#0F4D3A', colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.H
       });
+
+      // Большой QR (оверлей)
+      qrBig.innerHTML = '';
+      qrBigInstance = new QRCode(qrBig, {
+        text: guestUrl, width: 480, height: 480,
+        colorDark: '#0F4D3A', colorLight: '#FFFFFF',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      renderCloud([], 0, 0, false);
     });
 
-    socket.on('cloudUpdate', ({ code, words }) => {
+    // === Обновление облака ===
+    socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
+      if (!currentCode || code !== currentCode) return;
+      currentWords = words || [];
+      isLocked = !!locked;
+
+      renderCloud(currentWords, participants || 0, totalWords || 0, isLocked);
+
+      // Переключаем состояние
+      const nowHasWord = currentWords.length > 0;
+      if (nowHasWord && !hasFirstWord) {
+        hasFirstWord = true;
+        document.body.classList.remove('state-waiting');
+        document.body.classList.add('state-cloud');
+      }
+      if (!nowHasWord && hasFirstWord) {
+        hasFirstWord = false;
+        document.body.classList.remove('state-cloud');
+        document.body.classList.add('state-waiting');
+      }
+
+      // Кнопка Стоп/Возобновить
+      btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
+      lockedOverlay.hidden = !isLocked;
+    });
+
+    // === Синхронизация состояния пульта ===
+    socket.on('hostState', ({ code, locked }) => {
       if (code !== currentCode) return;
-      renderCloud(words);
+      isLocked = !!locked;
+      btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
+      lockedOverlay.hidden = !isLocked;
     });
 
-    function renderCloud(words) {
-      cloudBox.innerHTML = '';
+    // === Отрисовка облака ===
+    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
+
+    function renderCloud(words, participants, totalWords, locked) {
+      statWords.textContent = totalWords;
+      statPeople.textContent = participants;
+
+      if (!words || words.length === 0) {
+        cloudEl.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
+        return;
+      }
+
+      // перемешиваем
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
-      shuffled.forEach(({ word, count }) => {
+
+      cloudEl.innerHTML = '';
+      shuffled.forEach((item, i) => {
         const span = document.createElement('span');
-        span.className = 'cloud-word';
-        if (Math.random() < 0.4) span.classList.add('gold');
-        span.style.fontSize = (16 + count * 8) + 'px';
-        span.textContent = word;
-        cloudBox.appendChild(span);
+        span.className = 'word';
+        span.textContent = item.word;
+        span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
+        span.style.color = COLORS[i % COLORS.length];
+        span.style.opacity = locked ? '0.5' : '1';
+        cloudEl.appendChild(span);
       });
+    }
+
+    // === Пульт: Стоп/Возобновить ===
+    btnLock.addEventListener('click', () => {
+      if (!currentCode) return;
+      socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked });
+    });
+
+    // === Пульт: QR во весь экран ===
+    btnFullQr.addEventListener('click', () => {
+      qrOverlay.hidden = false;
+    });
+    btnCloseQr.addEventListener('click', () => {
+      qrOverlay.hidden = true;
+    });
+
+    // === Пульт: Топ-3 ===
+    btnTop3.addEventListener('click', () => {
+      const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
+      topList.innerHTML = '';
+      if (top.length === 0) {
+        topList.innerHTML = '<li class="top-empty">Пока нет слов</li>';
+      } else {
+        top.forEach((item, i) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="top-rank">${i + 1}</span>
+                          <span class="top-word">${escapeHtml(item.word)}</span>
+                          <span class="top-count">×${item.count}</span>`;
+          topList.appendChild(li);
+        });
+      }
+      topOverlay.hidden = false;
+    });
+    btnCloseTop.addEventListener('click', () => { topOverlay.hidden = true; });
+
+    // === Пульт: CSV ===
+    btnCsv.addEventListener('click', () => {
+      if (currentWords.length === 0) return;
+      const rows = [['Слово', 'Количество']];
+      currentWords
+        .slice().sort((a, b) => b.count - a.count)
+        .forEach(w => rows.push([w.word, w.count]));
+
+      const csv = rows.map(r =>
+        r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ).join('\r\n');
+
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cloud-${currentCode}-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // === Пульт: Очистить всё ===
+    btnClear.addEventListener('click', () => {
+      if (!currentCode) return;
+      if (!confirm('Очистить все слова и участников?')) return;
+      socket.emit('hostClear', { code: currentCode });
+    });
+
+    // === Пульт: ручное добавление ===
+    btnManualAdd.addEventListener('click', () => {
+      const w = manualInput.value.trim();
+      if (!w || !currentCode) return;
+      socket.emit('hostAddWord', { code: currentCode, word: w });
+      manualInput.value = '';
+    });
+    manualInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btnManualAdd.click();
+    });
+
+    // === Утилита ===
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
     }
   </script>
 </body>
