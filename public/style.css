@@ -8,6 +8,8 @@
   --text-soft: #1C8670;
 }
 
+[hidden] { display: none !important; }
+
 * { box-sizing: border-box; }
 
 html, body {
