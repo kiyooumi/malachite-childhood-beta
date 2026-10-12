@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Облако слов — Малахитовое детство</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,7 +12,7 @@
 </head>
 <body class="state-waiting">
 
-  <!-- ============ ЭКРАН НАСТРОЙКИ ============ -->
+  <!-- ЭКРАН НАСТРОЙКИ -->
   <section id="setupScreen" class="setup-screen">
     <div class="setup-card">
       <img src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
@@ -28,10 +28,9 @@
     </div>
   </section>
 
-  <!-- ============ ЭКРАН КОМНАТЫ ============ -->
+  <!-- ЭКРАН КОМНАТЫ -->
   <section id="roomScreen" class="room-screen" hidden>
 
-    <!-- ШАПКА -->
     <header class="room-header">
       <div class="header-left">
         <h2 id="questionBanner" class="question-text">—</h2>
@@ -50,7 +49,6 @@
       </div>
     </header>
 
-    <!-- ОБЛАСТЬ ОБЛАКА -->
     <main class="cloud-area">
       <div id="cloud" class="cloud">
         <div class="cloud-empty">Ждём слова от гостей…</div>
@@ -60,7 +58,6 @@
       </div>
     </main>
 
-    <!-- ПУЛЬТ -->
     <div class="control-bar">
       <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
       <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
@@ -100,7 +97,6 @@
   <script>
     const socket = io();
 
-    // Элементы
     const setupScreen = document.getElementById('setupScreen');
     const roomScreen  = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
@@ -133,7 +129,6 @@
 
     const lockedOverlay = document.getElementById('lockedOverlay');
 
-    // Состояние
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
@@ -141,7 +136,6 @@
     let qrMain = null;
     let qrBigInstance = null;
 
-    // === Создание облака ===
     createBtn.addEventListener('click', () => {
       const q = questionInput.value.trim();
       if (!q) { questionInput.focus(); return; }
@@ -151,7 +145,6 @@
       if (e.key === 'Enter') createBtn.click();
     });
 
-    // === Создано ===
     socket.on('cloudCreated', ({ code, question }) => {
       currentCode = code;
       currentWords = [];
@@ -173,7 +166,6 @@
       joinLinkBig.textContent = guestUrl;
       joinLinkBig.href = guestUrl;
 
-      // Главный QR
       qrcodeEl.innerHTML = '';
       qrMain = new QRCode(qrcodeEl, {
         text: guestUrl, width: 220, height: 220,
@@ -181,7 +173,6 @@
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      // Большой QR (оверлей)
       qrBig.innerHTML = '';
       qrBigInstance = new QRCode(qrBig, {
         text: guestUrl, width: 480, height: 480,
@@ -192,7 +183,6 @@
       renderCloud([], 0, 0, false);
     });
 
-    // === Обновление облака ===
     socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
       if (!currentCode || code !== currentCode) return;
       currentWords = words || [];
@@ -200,7 +190,6 @@
 
       renderCloud(currentWords, participants || 0, totalWords || 0, isLocked);
 
-      // Переключаем состояние
       const nowHasWord = currentWords.length > 0;
       if (nowHasWord && !hasFirstWord) {
         hasFirstWord = true;
@@ -213,12 +202,10 @@
         document.body.classList.add('state-waiting');
       }
 
-      // Кнопка Стоп/Возобновить
       btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
       lockedOverlay.hidden = !isLocked;
     });
 
-    // === Синхронизация состояния пульта ===
     socket.on('hostState', ({ code, locked }) => {
       if (code !== currentCode) return;
       isLocked = !!locked;
@@ -226,7 +213,6 @@
       lockedOverlay.hidden = !isLocked;
     });
 
-    // === Отрисовка облака ===
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
 
     function renderCloud(words, participants, totalWords, locked) {
@@ -238,9 +224,7 @@
         return;
       }
 
-      // перемешиваем
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
-
       cloudEl.innerHTML = '';
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
@@ -253,21 +237,35 @@
       });
     }
 
-    // === Пульт: Стоп/Возобновить ===
+    // Открытие/закрытие оверлеев
+    function openOverlay(el) { el.hidden = false; document.body.classList.add('overlay-open'); }
+    function closeAllOverlays() {
+      qrOverlay.hidden = true;
+      topOverlay.hidden = true;
+      document.body.classList.remove('overlay-open');
+    }
+
     btnLock.addEventListener('click', () => {
       if (!currentCode) return;
       socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked });
     });
 
-    // === Пульт: QR во весь экран ===
-    btnFullQr.addEventListener('click', () => {
-      qrOverlay.hidden = false;
+    btnFullQr.addEventListener('click', () => openOverlay(qrOverlay));
+    btnCloseQr.addEventListener('click', (e) => { e.stopPropagation(); closeAllOverlays(); });
+
+    // Закрытие по клику на фон
+    qrOverlay.addEventListener('click', (e) => {
+      if (e.target === qrOverlay) closeAllOverlays();
     });
-    btnCloseQr.addEventListener('click', () => {
-      qrOverlay.hidden = true;
+    topOverlay.addEventListener('click', (e) => {
+      if (e.target === topOverlay) closeAllOverlays();
     });
 
-    // === Пульт: Топ-3 ===
+    // Закрытие по Escape (аварийный выход)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAllOverlays();
+    });
+
     btnTop3.addEventListener('click', () => {
       const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
       topList.innerHTML = '';
@@ -282,22 +280,18 @@
           topList.appendChild(li);
         });
       }
-      topOverlay.hidden = false;
+      openOverlay(topOverlay);
     });
-    btnCloseTop.addEventListener('click', () => { topOverlay.hidden = true; });
+    btnCloseTop.addEventListener('click', (e) => { e.stopPropagation(); closeAllOverlays(); });
 
-    // === Пульт: CSV ===
     btnCsv.addEventListener('click', () => {
       if (currentWords.length === 0) return;
       const rows = [['Слово', 'Количество']];
-      currentWords
-        .slice().sort((a, b) => b.count - a.count)
+      currentWords.slice().sort((a, b) => b.count - a.count)
         .forEach(w => rows.push([w.word, w.count]));
-
       const csv = rows.map(r =>
         r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
       ).join('\r\n');
-
       const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -309,14 +303,12 @@
       URL.revokeObjectURL(url);
     });
 
-    // === Пульт: Очистить всё ===
     btnClear.addEventListener('click', () => {
       if (!currentCode) return;
       if (!confirm('Очистить все слова и участников?')) return;
       socket.emit('hostClear', { code: currentCode });
     });
 
-    // === Пульт: ручное добавление ===
     btnManualAdd.addEventListener('click', () => {
       const w = manualInput.value.trim();
       if (!w || !currentCode) return;
@@ -327,7 +319,6 @@
       if (e.key === 'Enter') btnManualAdd.click();
     });
 
-    // === Утилита ===
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
