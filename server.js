@@ -31,15 +31,6 @@ function serializeWords(cloud) {
     .sort((a, b) => b.count - a.count);
 }
 
-function snapshot(cloud) {
-  return {
-    words: serializeWords(cloud),
-    participants: cloud.participants.size,
-    totalWords: Array.from(cloud.words.values()).reduce((a, b) => a + b, 0),
-    locked: cloud.locked
-  };
-}
-
 function broadcastCloud(code) {
   const cloud = clouds.get(code);
   if (!cloud) return;
@@ -138,8 +129,24 @@ io.on('connection', (socket) => {
     broadcastCloud(code);
   });
 
+  // НОВОЕ: Ведущий удаляет одно слово из облака (гость об этом не уведомляется)
+  socket.on('hostRemoveWord', ({ code, word }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    const target = String(word || '').trim();
+    if (!target) return;
+
+    let foundKey = null;
+    for (const k of cloud.words.keys()) {
+      if (k.toLowerCase() === target.toLowerCase()) { foundKey = k; break; }
+    }
+    if (!foundKey) return;
+
+    cloud.words.delete(foundKey);
+    broadcastCloud(code);
+  });
+
   socket.on('disconnect', () => {
-    // Убираем участника из всех облаков, где он был
     for (const [code, cloud] of clouds.entries()) {
       if (cloud.participants.has(socket.id)) {
         cloud.participants.delete(socket.id);
