@@ -31,6 +31,7 @@
   <!-- ЭКРАН КОМНАТЫ -->
   <section id="roomScreen" class="room-screen" hidden>
 
+    <!-- Шапка: вопрос + статистика + код -->
     <header class="room-header">
       <div class="header-left">
         <h2 id="questionBanner" class="question-text">—</h2>
@@ -42,22 +43,27 @@
       </div>
 
       <div class="header-right">
-        <div class="join-label">ПРИСОЕДИНЯЙТЕСЬ</div>
-        <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
+        <div class="join-label">КОД КОМНАТЫ</div>
         <div id="codeValue" class="code-value">------</div>
-        <div id="qrcode" class="qr-box"></div>
       </div>
     </header>
 
+    <!-- Основная зона: облако + боковой QR -->
     <main class="cloud-area">
-      <div id="cloud" class="cloud">
-        <div class="cloud-empty">Ждём слова от гостей…</div>
+      <div class="cloud-wrap">
+        <div id="cloud" class="cloud">
+          <div class="cloud-empty">Ждём слова от гостей…</div>
+        </div>
       </div>
-      <div id="lockedOverlay" class="locked-overlay" hidden>
-        Приём слов приостановлен
-      </div>
+
+      <aside class="side-qr">
+        <div class="side-qr-title">ПРИСОЕДИНЯЙТЕСЬ</div>
+        <div id="qrcode" class="qr-box"></div>
+        <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
+      </aside>
     </main>
 
+    <!-- Пульт -->
     <div class="control-bar">
       <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
       <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
@@ -126,8 +132,6 @@
     const topOverlay  = document.getElementById('topOverlay');
     const topList     = document.getElementById('topList');
     const btnCloseTop = document.getElementById('btnCloseTop');
-
-    const lockedOverlay = document.getElementById('lockedOverlay');
 
     let currentCode = null;
     let currentWords = [];
@@ -203,14 +207,12 @@
       }
 
       btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
-      lockedOverlay.hidden = !isLocked;
     });
 
     socket.on('hostState', ({ code, locked }) => {
       if (code !== currentCode) return;
       isLocked = !!locked;
       btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
-      lockedOverlay.hidden = !isLocked;
     });
 
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
@@ -232,7 +234,7 @@
         span.textContent = item.word;
         span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
         span.style.color = COLORS[i % COLORS.length];
-        span.style.opacity = locked ? '0.5' : '1';
+        span.style.opacity = locked ? '0.55' : '1';
         cloudEl.appendChild(span);
       });
     }
@@ -253,7 +255,6 @@
     btnFullQr.addEventListener('click', () => openOverlay(qrOverlay));
     btnCloseQr.addEventListener('click', (e) => { e.stopPropagation(); closeAllOverlays(); });
 
-    // Закрытие по клику на фон
     qrOverlay.addEventListener('click', (e) => {
       if (e.target === qrOverlay) closeAllOverlays();
     });
@@ -261,7 +262,6 @@
       if (e.target === topOverlay) closeAllOverlays();
     });
 
-    // Закрытие по Escape (аварийный выход)
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') closeAllOverlays();
     });
