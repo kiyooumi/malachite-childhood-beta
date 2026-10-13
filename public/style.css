@@ -71,6 +71,21 @@ body:not(.guest-body) { overflow: hidden; }
 .btn-danger { background: #B23A3A; color: #fff; }
 .btn-danger:hover { background: #C94141; box-shadow: 0 8px 24px rgba(178, 58, 58, 0.4); }
 
+.btn-outline-danger {
+  background: transparent;
+  color: #ff9d9d;
+  border: 2px solid #B23A3A;
+}
+.btn-outline-danger:hover {
+  background: rgba(178, 58, 58, 0.25);
+  box-shadow: none;
+}
+.btn-outline-danger.active {
+  background: #B23A3A;
+  color: #fff;
+  border-color: #B23A3A;
+}
+
 /* ============ ЭКРАН НАСТРОЙКИ ============ */
 .setup-screen {
   position: fixed;
@@ -167,7 +182,7 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   display: flex;
   align-items: stretch;
   gap: 16px;
-  padding: 14px 20px 84px;   /* снизу место под пульт */
+  padding: 14px 20px 84px;
   overflow: hidden;
   min-height: 0;
 }
@@ -272,9 +287,42 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   flex-wrap: wrap;
   justify-content: center;
   max-width: calc(100vw - 24px);
+  z-index: 40;
 }
 .manual-add { display: flex; gap: 6px; align-items: center; }
 .manual-add .input-small { width: 200px; }
+
+/* --- Подсказка режима удаления --- */
+.delete-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(178, 58, 58, 0.9);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+/* В режиме удаления слова подсвечиваются и курсор меняется */
+body.delete-mode .cloud .word {
+  outline: 2px dashed rgba(255, 157, 157, 0.9);
+  outline-offset: 3px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: outline-color 0.15s, transform 0.15s, background 0.15s;
+}
+body.delete-mode .cloud .word:hover {
+  background: rgba(178, 58, 58, 0.35);
+  outline-color: #fff;
+  transform: scale(1.08);
+}
 
 /* --- Оверлеи --- */
 .overlay {
@@ -341,12 +389,12 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 16px 4px;
+  padding: 18px 16px 6px;
 }
 .logo-small {
-  height: 40px;
+  height: 64px;
   width: auto;
-  max-width: 60vw;
+  max-width: 76vw;
   object-fit: contain;
 }
 
@@ -423,7 +471,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
 
   .cloud-area {
     flex-direction: column;
-    padding: 10px 12px 96px;
+    padding: 10px 12px 116px;
     gap: 10px;
   }
   .cloud-wrap { width: 100%; }
@@ -458,6 +506,8 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   .manual-add { width: 100%; }
   .manual-add .input-small { width: auto; flex: 1; }
 
+  .delete-hint { font-size: 11px; padding: 6px 12px; top: 8px; }
+
   .overlay-title { font-size: 20px; }
   .overlay-code { font-size: 52px; letter-spacing: 6px; }
   .qr-big { padding: 10px; }
@@ -474,8 +524,9 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
 }
 
 @media (max-width: 480px) {
-  .guest-header { padding: 10px 12px 2px; }
-  .logo-small { height: 34px; max-width: 70vw; }
+  .guest-header { padding: 14px 12px 4px; }
+  .logo-small { height: 52px; max-width: 82vw; }
+
   .guest-wrap { padding: 12px 10px; }
   .guest-card {
     padding: 20px 16px;
