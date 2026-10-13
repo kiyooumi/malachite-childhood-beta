@@ -2,20 +2,20 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Облако слов — гость</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
-<body>
-  <header class="header">
-    <img src="/logo.png" alt="Малахитовое детство" class="logo-main small">
+<body class="guest-body">
+  <header class="guest-header">
+    <img src="/logo.png" alt="Малахитовое детство" class="logo-small">
   </header>
 
-  <main class="container">
-    <section class="card">
-      <h1 class="title">Ваше слово</h1>
-      <p class="subtitle">Ответьте одним словом — оно появится в облаке</p>
+  <main class="guest-wrap">
+    <section class="guest-card">
+      <h1 class="guest-title">Ваше слово</h1>
+      <p class="guest-subtitle">Ответьте одним словом — оно появится в облаке</p>
 
       <label class="field-label" for="codeInput">Код комнаты</label>
       <input type="text" id="codeInput" class="input" inputmode="numeric" maxlength="6" placeholder="XXXXXX">
@@ -23,13 +23,13 @@
       <label class="field-label" for="wordInput">Ваше слово</label>
       <input type="text" id="wordInput" class="input" maxlength="40" placeholder="Одно слово">
 
-      <button id="sendBtn" class="btn">Отправить</button>
+      <button id="sendBtn" class="btn" type="button">Отправить</button>
       <p id="statusMsg" class="status" hidden></p>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>2026 Дворец Молодёжи</p>
+  <footer class="guest-footer">
+    <p>2026 · Дворец Молодёжи</p>
   </footer>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -81,6 +81,9 @@
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') wordInput.focus();
     });
+
+    socket.on('errorMessage', ({ message }) => showStatus(message, true));
+    socket.on('wordAccepted', () => showStatus('Слово отправлено!', false));
   </script>
 </body>
 </html>
