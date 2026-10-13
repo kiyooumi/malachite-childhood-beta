@@ -66,6 +66,7 @@
     <!-- Пульт -->
     <div class="control-bar">
       <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
+      <button id="btnDeleteMode" class="btn btn-small btn-outline-danger" type="button">🗑 Удалить слово</button>
       <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
       <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
       <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
@@ -75,6 +76,11 @@
                placeholder="Добавить слово вручную" maxlength="30" />
         <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
       </div>
+    </div>
+
+    <!-- Подсказка режима удаления -->
+    <div id="deleteHint" class="delete-hint" hidden>
+      Режим удаления: нажмите на слово, чтобы убрать его. Esc — выйти.
     </div>
 
     <!-- ОВЕРЛЕЙ: ПОЛНОЭКРАННЫЙ QR -->
@@ -116,6 +122,8 @@
     const joinLink    = document.getElementById('joinLink');
 
     const btnLock     = document.getElementById('btnLock');
+    const btnDeleteMode = document.getElementById('btnDeleteMode');
+    const deleteHint  = document.getElementById('deleteHint');
     const btnFullQr   = document.getElementById('btnFullQr');
     const btnTop3     = document.getElementById('btnTop3');
     const btnCsv      = document.getElementById('btnCsv');
@@ -136,6 +144,7 @@
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
+    let deleteMode = false;
     let hasFirstWord = false;
     let qrMain = null;
     let qrBigInstance = null;
@@ -154,6 +163,7 @@
       currentWords = [];
       hasFirstWord = false;
       isLocked = false;
+      setDeleteMode(false);
       document.body.classList.add('state-waiting');
       document.body.classList.remove('state-cloud');
 
@@ -235,9 +245,25 @@
         span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
         span.style.color = COLORS[i % COLORS.length];
         span.style.opacity = locked ? '0.55' : '1';
+
+        span.addEventListener('click', () => {
+          if (!deleteMode || !currentCode) return;
+          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
+        });
+
         cloudEl.appendChild(span);
       });
     }
+
+    // === РЕЖИМ УДАЛЕНИЯ СЛОВ ===
+    function setDeleteMode(on) {
+      deleteMode = !!on;
+      document.body.classList.toggle('delete-mode', deleteMode);
+      btnDeleteMode.classList.toggle('active', deleteMode);
+      deleteHint.hidden = !deleteMode;
+    }
+
+    btnDeleteMode.addEventListener('click', () => setDeleteMode(!deleteMode));
 
     // Открытие/закрытие оверлеев
     function openOverlay(el) { el.hidden = false; document.body.classList.add('overlay-open'); }
@@ -263,7 +289,10 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeAllOverlays();
+      if (e.key === 'Escape') {
+        if (deleteMode) setDeleteMode(false);
+        closeAllOverlays();
+      }
     });
 
     btnTop3.addEventListener('click', () => {
