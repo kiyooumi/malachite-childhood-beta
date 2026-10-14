@@ -63,18 +63,23 @@
       </aside>
     </main>
 
-    <!-- Пульт -->
-    <div class="control-bar">
-      <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
-      <button id="btnDeleteMode" class="btn btn-small btn-outline-danger" type="button">🗑 Удалить слово</button>
-      <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
-      <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
-      <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
-      <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
-      <div class="manual-add">
-        <input id="manualInput" class="input input-small" type="text"
-               placeholder="Добавить слово вручную" maxlength="30" />
-        <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
+    <!-- Кнопка-гамбургер для пульта -->
+    <button id="menuToggle" class="menu-toggle" type="button" aria-label="Меню">☰</button>
+
+    <!-- Пульт (сворачиваемый) -->
+    <div id="controlBar" class="control-bar collapsed">
+      <div class="control-bar-inner">
+        <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
+        <button id="btnDeleteMode" class="btn btn-small btn-outline-danger" type="button">🗑 Удалить слово</button>
+        <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
+        <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
+        <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
+        <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
+        <div class="manual-add">
+          <input id="manualInput" class="input input-small" type="text"
+                 placeholder="Добавить слово вручную" maxlength="30" />
+          <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
+        </div>
       </div>
     </div>
 
@@ -120,6 +125,9 @@
     const statWords   = document.getElementById('statWords');
     const statPeople  = document.getElementById('statPeople');
     const joinLink    = document.getElementById('joinLink');
+
+    const menuToggle  = document.getElementById('menuToggle');
+    const controlBar  = document.getElementById('controlBar');
 
     const btnLock     = document.getElementById('btnLock');
     const btnDeleteMode = document.getElementById('btnDeleteMode');
@@ -185,7 +193,7 @@
         text: guestUrl, width: 220, height: 220,
         colorDark: '#0F4D3A', colorLight: '#FFFFFF',
         correctLevel: QRCode.CorrectLevel.H
-      });
+});
 
       qrBig.innerHTML = '';
       qrBigInstance = new QRCode(qrBig, {
@@ -242,7 +250,8 @@
         const span = document.createElement('span');
         span.className = 'word';
         span.textContent = item.word;
-        span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
+        // Немного увеличенный базовый размер
+        span.style.fontSize = (22 + Math.sqrt(item.count) * 14) + 'px';
         span.style.color = COLORS[i % COLORS.length];
         span.style.opacity = locked ? '0.55' : '1';
 
@@ -254,6 +263,18 @@
         cloudEl.appendChild(span);
       });
     }
+
+    // === МЕНЮ-ПУЛЬТ ===
+    function setMenuOpen(open) {
+      controlBar.classList.toggle('collapsed', !open);
+      controlBar.classList.toggle('open', !!open);
+      menuToggle.classList.toggle('open', !!open);
+      menuToggle.textContent = open ? '✕' : '☰';
+    }
+
+    menuToggle.addEventListener('click', () => {
+      setMenuOpen(controlBar.classList.contains('collapsed'));
+    });
 
     // === РЕЖИМ УДАЛЕНИЯ СЛОВ ===
     function setDeleteMode(on) {
@@ -289,8 +310,11 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      if (e.key
+
+=== 'Escape') {
         if (deleteMode) setDeleteMode(false);
+        if (!controlBar.classList.contains('collapsed')) setMenuOpen(false);
         closeAllOverlays();
       }
     });
@@ -350,7 +374,7 @@
 
     function escapeHtml(s) {
       return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '''
       }[c]));
     }
   </script>
