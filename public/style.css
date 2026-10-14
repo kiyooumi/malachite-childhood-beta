@@ -1,3 +1,4 @@
+
 :root {
   --bg-main: #0F4D3A;
   --bg-secondary: #1B6B4F;
@@ -164,7 +165,9 @@ body:not(.guest-body) { overflow: hidden; }
   color: var(--accent-teal);
 }
 .code-value {
-  font-size: 56px;
+  font-size:
+
+56px;
   font-weight: 900;
   color: var(--accent-gold);
   letter-spacing: 6px;
@@ -182,7 +185,7 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   display: flex;
   align-items: stretch;
   gap: 16px;
-  padding: 14px 20px 84px;
+  padding: 14px 20px 20px;   /* низ уменьшили — пульт теперь плавающий */
   overflow: hidden;
   min-height: 0;
 }
@@ -204,13 +207,13 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   justify-content: center;
   align-items: center;
   align-content: center;
-  gap: 6px 12px;
+  gap: 2px 6px;             /* расстояние между словами уменьшено */
 }
 
 .cloud .word {
   font-weight: 800;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 0 2px;           /* внутренние отступы слова уменьшены */
   animation: pop 0.4s ease;
   transition: font-size 0.4s ease, color 0.4s ease, opacity 0.4s ease;
   white-space: nowrap;
@@ -270,25 +273,77 @@ body.state-waiting .side-qr .qr-box img { width: 200px !important; height: 200px
 body.state-cloud   .side-qr .qr-box canvas,
 body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px !important; }
 
-/* --- Пульт --- */
+/* --- Кнопка-гамбургер --- */
+.menu-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-teal);
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--text-white);
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+  line-height: 1;
+}
+.menu-toggle:hover {
+  background: rgba(42, 179, 166, 0.25);
+  border-color: var(--accent-gold);
+}
+.menu-toggle.open {
+  background: var(--accent-gold);
+  color: var(--bg-main);
+  border-color: var(--accent-gold);
+}
+
+/* --- Пульт (сворачиваемый) --- */
 .control-bar {
-  position: absolute;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
+  z-index: 55;
+  transform-origin: bottom right;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  max-width: calc(100vw - 32px);
+}
+.control-bar.collapsed {
+  opacity: 0;
+  transform: scale(0.85) translateY(10px);
+  pointer-events: none;
+  visibility: hidden;
+}
+.control-bar.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.control-bar-inner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(42, 179, 166, 0.4);
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(42, 179, 166, 0.5);
   border-radius: 14px;
-  backdrop-filter: blur(6px);
+  backd
+
+rop-filter: blur(8px);
   flex-wrap: wrap;
-  justify-content: center;
-  max-width: calc(100vw - 24px);
-  z-index: 40;
+  justify-content: flex-end;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
+
 .manual-add { display: flex; gap: 6px; align-items: center; }
 .manual-add .input-small { width: 200px; }
 
@@ -310,7 +365,6 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   text-align: center;
 }
 
-/* В режиме удаления слова подсвечиваются и курсор меняется */
 body.delete-mode .cloud .word {
   outline: 2px dashed rgba(255, 157, 157, 0.9);
   outline-offset: 3px;
@@ -453,12 +507,14 @@ body.delete-mode .cloud .word:hover {
 .guest-footer p { margin: 0; }
 
 /* ============ ПЛАНШЕТ / МОБИЛЬНЫЙ ============ */
-@media (max-width: 900px) {
+max-width: 900px {
   .room-header {
     padding: 10px 14px;
     gap: 10px;
   }
-  .question-text { font-size: 16px; -webkit-line-clamp: 1; }
+  .question-text { font-size: 16px;
+
+-webkit-line-clamp: 1; }
   .header-hint { font-size: 10px; }
   .stats-line { font-size: 12px; }
   .join-label { font-size: 9px; letter-spacing: 1px; }
@@ -471,12 +527,12 @@ body.delete-mode .cloud .word:hover {
 
   .cloud-area {
     flex-direction: column;
-    padding: 10px 12px 116px;
+    padding: 10px 12px 20px;
     gap: 10px;
   }
   .cloud-wrap { width: 100%; }
-  .cloud { gap: 4px 8px; }
-  .cloud .word { padding: 1px 4px; }
+  .cloud { gap: 2px 5px; }
+  .cloud .word { padding: 0 1px; }
 
   .side-qr {
     width: 100%;
@@ -495,12 +551,24 @@ body.delete-mode .cloud .word:hover {
     width: 96px !important; height: 96px !important;
   }
 
+  /* Пульт на мобильном — почти на всю ширину */
+  .menu-toggle {
+    right: 12px;
+    bottom: 12px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
   .control-bar {
-    bottom: 8px;
-    padding: 6px;
+    right: 12px;
+    left: 12px;
+    bottom: 72px;
+    max-width: none;
+  }
+  .control-bar-inner {
+    padding: 8px;
     gap: 6px;
-    width: calc(100vw - 16px);
-    border-radius: 12px;
+    justify-content: center;
   }
   .btn-small { padding: 8px 12px; font-size: 12px; border-radius: 8px; }
   .manual-add { width: 100%; }
@@ -517,13 +585,12 @@ body.delete-mode .cloud .word:hover {
   .setup-title { font-size: 26px; }
   .setup-logo { height: 48px; }
 
-  /* Гость на планшете/телефоне */
   .guest-card { padding: 24px 18px; border-radius: 18px; }
   .guest-title { font-size: 20px; }
   .guest-wrap { padding: 16px 12px; }
 }
 
-@media (max-width: 480px) {
+max-width: 480px {
   .guest-header { padding: 14px 12px 4px; }
   .logo-small { height: 52px; max-width: 82vw; }
 
