@@ -165,9 +165,7 @@ body:not(.guest-body) { overflow: hidden; }
   color: var(--accent-teal);
 }
 .code-value {
-  font-size:
-
-56px;
+  font-size: 56px;
   font-weight: 900;
   color: var(--accent-gold);
   letter-spacing: 6px;
@@ -336,9 +334,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   background: rgba(0, 0, 0, 0.55);
   border: 1px solid rgba(42, 179, 166, 0.5);
   border-radius: 14px;
-  backd
-
-rop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   flex-wrap: wrap;
   justify-content: flex-end;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -512,9 +508,7 @@ max-width: 900px {
     padding: 10px 14px;
     gap: 10px;
   }
-  .question-text { font-size: 16px;
-
--webkit-line-clamp: 1; }
+  .question-text { font-size: 16px; -webkit-line-clamp: 1; }
   .header-hint { font-size: 10px; }
   .stats-line { font-size: 12px; }
   .join-label { font-size: 9px; letter-spacing: 1px; }
