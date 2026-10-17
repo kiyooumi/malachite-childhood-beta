@@ -60,6 +60,7 @@
         <div class="side-qr-title">ПРИСОЕДИНЯЙТЕСЬ</div>
         <div id="qrcode" class="qr-box"></div>
         <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
+        <button id="copyBtn" class="btn btn-copy" type="button">Скопировать ссылку</button>
       </aside>
     </main>
 
@@ -84,6 +85,7 @@
         <div id="qrBig" class="qr-big"></div>
         <div class="overlay-code" id="codeBig">------</div>
         <a id="joinLinkBig" class="join-link join-link-big" href="#" target="_blank" rel="noopener">—</a>
+        <button id="copyBtnBig" class="btn btn-copy" type="button">Скопировать ссылку</button>
         <button id="btnCloseQr" class="btn" type="button">Вернуть облако</button>
       </div>
     </div>
@@ -114,6 +116,7 @@
     const statWords   = document.getElementById('statWords');
     const statPeople  = document.getElementById('statPeople');
     const joinLink    = document.getElementById('joinLink');
+    const copyBtn     = document.getElementById('copyBtn');
 
     const btnLock     = document.getElementById('btnLock');
     const btnFullQr   = document.getElementById('btnFullQr');
@@ -127,6 +130,7 @@
     const qrBig       = document.getElementById('qrBig');
     const codeBig     = document.getElementById('codeBig');
     const joinLinkBig = document.getElementById('joinLinkBig');
+    const copyBtnBig  = document.getElementById('copyBtnBig');
     const btnCloseQr  = document.getElementById('btnCloseQr');
 
     const topOverlay  = document.getElementById('topOverlay');
@@ -266,6 +270,55 @@
       if (e.key === 'Escape') closeAllOverlays();
     });
 
+    // ===== Кнопки «Скопировать ссылку» =====
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // Fallback для http:// и старых браузеров
+      return new Promise((resolve, reject) => {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '-1000px';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          ta.setSelectionRange(0, ta.value.length);
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          ok ? resolve() : reject(new Error('execCommand copy failed'));
+        } catch (err) { reject(err); }
+      });
+    }
+
+    function flashCopied(btn, ok) {
+      if (!btn.dataset.original) btn.dataset.original = btn.textContent;
+      btn.textContent = ok ? '✓ Скопировано!' : 'Не удалось :(';
+      btn.classList.toggle('copied', ok);
+      clearTimeout(btn._copyTimer);
+      btn._copyTimer = setTimeout(() => {
+        btn.textContent = btn.dataset.original;
+        btn.classList.remove('copied');
+      }, 1800);
+    }
+
+    function bindCopy(btn, getUrl) {
+      btn.addEventListener('click', () => {
+        const url = getUrl();
+        if (!url) return;
+        copyToClipboard(url)
+          .then(() => flashCopied(btn, true))
+          .catch(() => flashCopied(btn, false));
+      });
+    }
+
+    bindCopy(copyBtn,    () => joinLink.href);
+    bindCopy(copyBtnBig, () => joinLinkBig.href);
+
+    // ===== Остальной пульт =====
     btnTop3.addEventListener('click', () => {
       const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
       topList.innerHTML = '';
