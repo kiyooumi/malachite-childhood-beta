@@ -251,7 +251,58 @@
         span.className = 'word';
         span.textContent = item.word;
         // Немного увеличенный базовый размер
-        span.style.fontSize = (22 + Math.sqrt(item.count) * 14) + 'px';
+        function renderCloud(words, participants, totalWords, locked) {
+      statWords.textContent = totalWords;
+      statPeople.textContent = participants;
+
+      if (!words || words.length === 0) {
+        cloudEl.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
+        return;
+      }
+
+      // Считаем уникальные слова (уже без учёта повторов — server отдаёт их уникальными)
+      const uniqueCount = words.length;
+
+      // Базовый размер: пока слов мало — крупно; по мере роста — уменьшаем.
+      // min 26px (дальние ряды ещё видят), max 140px (первое слово — очень крупное)
+      const base = Math.max(26, Math.min(140, 780 / Math.sqrt(uniqueCount + 2)));
+
+      // Перемешиваем, чтобы позиции не повторялись из рендера в рендер
+      const shuffled = words.slice().sort(() => Math.random() - 0.5);
+
+      cloudEl.innerHTML = '';
+      shuffled.forEach((item, i) => {
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = item.word;
+
+        // Небольшой разброс ±15%, чтобы облако выглядело живее, но не «прыгало»
+        const jitter = 0.85 + Math.random() * 0.3;
+        // Чем чаще слово — тем чуть крупнее (мягко, не в разы)
+        const freqBoost = 1 + Math.min(item.count - 1, 6) * 0.06;
+
+        const size = Math.round(base * jitter * freqBoost);
+        span.style.fontSize = size + 'px';
+
+        // Вращение для хаотичности (маленькое, чтобы читалось)
+        const rot = (Math.random() * 14 - 7).toFixed(1);
+        span.style.setProperty('--rot', rot + 'deg');
+
+        span.style.color = COLORS[i % COLORS.length];
+        span.style.opacity = locked ? '0.55' : '1';
+
+        // Случайный вертикальный сдвиг — облако заполняет экран по высоте
+        const dy = Math.round((Math.random() - 0.5) * base * 0.5);
+        span.style.transform = `rotate(${rot}deg) translateY(${dy}px)`;
+
+        span.addEventListener('click', () => {
+          if (!deleteMode || !currentCode) return;
+          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
+        });
+
+        cloudEl.appendChild(span);
+      });
+    }
         span.style.color = COLORS[i % COLORS.length];
         span.style.opacity = locked ? '0.55' : '1';
 
