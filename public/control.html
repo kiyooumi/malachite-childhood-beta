@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Пульт ведущего</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="control-body">
+
+  <header class="control-header">
+    <div class="control-title">
+      <span class="dot-live"></span> Пульт ведущего
+    </div>
+    <div class="control-meta">
+      <span>Код: <b id="codeLabel">------</b></span>
+      <button id="btnFocusStage" class="btn btn-small btn-ghost" type="button" title="Переключиться на окно сцены">
+        К сцене
+      </button>
+    </div>
+  </header>
+
+  <section class="control-stats">
+    <div class="stat"><span id="statWords">0</span><small>слов</small></div>
+    <div class="stat"><span id="statPeople">0</span><small>участников</small></div>
+    <div class="stat"><span id="statUnique">0</span><small>уникальных</small></div>
+    <div class="stat stat-status"><span id="statLock">Активно</span><small>приём</small></div>
+  </section>
+
+  <section class="control-actions">
+    <button id="btnLock" class="btn btn-block" type="button">⏸ Приостановить приём</button>
+
+    <div class="manual-add">
+      <input id="manualInput" class="input" type="text"
+             placeholder="Добавить слово вручную" maxlength="30" />
+      <button id="btnManualAdd" class="btn" type="button">Добавить</button>
+    </div>
+
+    <div class="btn-row">
+      <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
+      <button id="btnCsv" class="btn btn-small" type="button">CSV</button>
+      <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
+    </div>
+  </section>
+
+  <section class="words-panel">
+    <div class="words-head">
+      <h3>Слова на сцене</h3>
+      <span class="words-hint">Клик по слову — удалить. Долгий клик / правый клик — уменьшить счётчик на 1.</span>
+    </div>
+    <div id="wordsList" class="words-list">
+      <div class="words-empty">Пока нет слов</div>
+    </div>
+  </section>
+
+  <!-- Модалка Топ-3 -->
+  <div id="topOverlay" class="overlay" hidden>
+    <div class="overlay-inner">
+      <div class="overlay-title">Топ-3 слова</div>
+      <ol id="topList" class="top-list"></ol>
+      <button id="btnCloseTop" class="btn" type="button">Закрыть</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const params = new URLSearchParams(window.location.search);
+    let currentCode = (params.get('code') || '').trim() || null;
+
+    const codeLabel    = document.getElementById('codeLabel');
+    const statWords    = document.getElementById('statWords');
+    const statPeople   = document.getElementById('statPeople');
+    const statUnique   = document.getElementById('statUnique');
+    const statLock     = document.getElementById('statLock');
+    const btnLock      = document.getElementById('btnLock');
+    const manualInput  = document.getElementById('manualInput');
+    const btnManualAdd = document.getElementById('btnManualAdd');
+    const btnTop3      = document.getElementById('btnTop3');
+    const btnCsv       = document.getElementById('btnCsv');
+    const btnClear     = document.getElementById('btnClear');
+    const wordsList    = document.getElementById('wordsList');
+    const btnFocusStage = document.getElementById('btnFocusStage');
+    const btnCloseTop  = document.getElementById('btnCloseTop');
+    const topOverlay   = document.getElementById('topOverlay');
+    const topList      = document.getElementById('topList');
+
+    let currentWords = [];
+    let isLocked = false;
+
+    if (currentCode) codeLabel.textContent = currentCode;
+
+    // Кнопка «К сцене» — фокусирует окно со сценой (если оно есть)
+    btnFocusStage.addEventListener('click', () => {
+      if (window.opener && !window.opener.closed) {
+        window.opener.focus();
+      } else {
+        window.open('/', 'malachite-stage');
+      }
+    });
+
+    // Если код не пришёл в URL, но сцена создала облако — ловим hostLink
+    socket.on('cloudCreated', ({ code }) => {
+      if (!currentCode) {
+        currentCode = code;
+        codeLabel.textContent = code;
+      }
+    });
+
+    socket.on('cloudUpdate', ({ code, words, participants, totalWords, uniqueWords, locked }) => {
+      if (!currentCode || code !== currentCode) return;
+
+      currentWords = words || [];
+      isLocked = !!locked;
+
+      statWords.textContent = totalWords || 0;
+      statPeople.textContent = participants || 0;
+      statUnique.textContent = uniqueWords || currentWords.length;
+      statLock.textContent = isLocked ? 'Пауза' : 'Активно';
+      statLock.classList.toggle('status-paused', isLocked);
+
+      btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём';
+      btnLock.classList.toggle('btn-paused', isLocked);
+
+      renderWordsList();
+    });
+
+    socket.on('hostState', ({ code, locked }) => {
+      if (code !== currentCode) return;
+      isLocked = !!locked;
+      statLock.textContent = isLocked ? 'Пауза' : 'Активно';
+      statLock.classList.toggle('status-paused', isLocked);
+      btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём';
+      btnLock.classList.toggle('btn-paused', isLocked);
+    });
+
+    socket.on('errorMessage', ({ message }) => {
+      // мягко показываем во всплывающей строке
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = message;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2200);
+    });
+
+    // ====== Список слов с кнопками удаления ======
+    function renderWordsList() {
+      if (!currentWords || currentWords.length === 0) {
+        wordsList.innerHTML = '<div class="words-empty">Пока нет слов</div>';
+        return;
+      }
+
+      const sorted = currentWords.slice().sort((a, b) => b.count - a.count);
+      wordsList.innerHTML = '';
+
+      sorted.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'word-row';
+
+        const wordEl = document.createElement('span');
+        wordEl.className = 'word-name';
+        wordEl.textContent = item.word;
+
+        const countEl = document.createElement('span');
+        countEl.className = 'word-count';
+        countEl.textContent = '×' + item.count;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn icon-del';
+        delBtn.type = 'button';
+        delBtn.title = 'Удалить слово';
+        delBtn.innerHTML = '✕';
+
+        const minusBtn = document.createElement('button');
+        minusBtn.className = 'icon-btn icon-minus';
+        minusBtn.type = 'button';
+        minusBtn.title = 'Уменьшить счётчик на 1';
+        minusBtn.innerHTML = '−';
+
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!currentCode) return;
+          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
+        });
+
+        minusBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!currentCode) return;
+          socket.emit('hostDecrementWord', { code: currentCode, word: item.word });
+        });
+
+        // Клик по строке — тоже удалить (быстрее на большом мониторе)
+        row.addEventListener('click', () => {
+          if (!currentCode) return;
+          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
+        });
+
+        row.appendChild(wordEl);
+        row.appendChild(countEl);
+        row.appendChild(minusBtn);
+        row.appendChild(delBtn);
+        wordsList.appendChild(row);
+      });
+    }
+
+    // ====== Действия ======
+    btnLock.addEventListener('click', () => {
+      if (!currentCode) return;
+      socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked });
+    });
+
+    btnManualAdd.addEventListener('click', () => {
+      const w = manualInput.value.trim();
+      if (!w || !currentCode) return;
+      socket.emit('hostAddWord', { code: currentCode, word: w });
+      manualInput.value = '';
+      manualInput.focus();
+    });
+    manualInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') btnManualAdd.click();
+    });
+
+    btnTop3.addEventListener('click', () => {
+      const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
+      topList.innerHTML = '';
+      if (top.length === 0) {
+        topList.innerHTML = '<li class="top-empty">Пока нет слов</li>';
+      } else {
+        top.forEach((item, i) => {
+          const li = document.createElement('li');
+          li.innerHTML = `<span class="top-rank">${i + 1}</span>
+                          <span class="top-word">${escapeHtml(item.word)}</span>
+                          <span class="top-count">×${item.count}</span>`;
+          topList.appendChild(li);
+        });
+      }
+      topOverlay.hidden = false;
+    });
+    btnCloseTop.addEventListener('click', () => { topOverlay.hidden = true; });
+    topOverlay.addEventListener('click', (e) => {
+      if (e.target === topOverlay) topOverlay.hidden = true;
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') topOverlay.hidden = true;
+    });
+
+    btnCsv.addEventListener('click', () => {
+      if (currentWords.length === 0) return;
+      const rows = [['Слово', 'Количество']];
+      currentWords.slice().sort((a, b) => b.count - a.count)
+        .forEach(w => rows.push([w.word, w.count]));
+      const csv = rows.map(r =>
+        r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ).join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cloud-${currentCode || 'room'}-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    btnClear.addEventListener('click', () => {
+      if (!currentCode) return;
+      if (!confirm('Очистить все слова и участников?')) return;
+      socket.emit('hostClear', { code: currentCode });
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+  </script>
+</body>
+</html>
