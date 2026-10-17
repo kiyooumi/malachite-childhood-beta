@@ -198,30 +198,24 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
 }
 
 .cloud {
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   align-content: center;
-  /* Плотные отступы: слова липнут друг к другу, но не слипаются */
-  gap: 2px 8px;
-  /* Небольшой внутренний отступ, чтобы слова не прилипали к краям */
-  padding: 6px 10px;
+  gap: 4px 10px; /* Отступы между словами */
+  width: 100%;
+  height: 100%;
+  padding: 10px;
 }
 
 .cloud .word {
   font-weight: 800;
-  line-height: 0.95;
-  padding: 0 4px;
-  animation: pop 0.4s ease;
-  transition: font-size 0.5s ease, color 0.4s ease, opacity 0.4s ease,
-              transform 0.5s ease;
+  line-height: 1;
   white-space: nowrap;
-  /* Начальный поворот задаётся в JS через --rot */
-  display: inline-block;
-  will-change: transform, font-size;
+  transition: font-size 0.4s ease, transform 0.4s ease;
+  /* Добавляем плавное появление */
+  animation: pop 0.4s ease; 
 }
 
 @keyframes pop {
