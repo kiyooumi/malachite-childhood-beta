@@ -71,6 +71,26 @@ body:not(.guest-body) { overflow: hidden; }
 .btn-danger { background: #B23A3A; color: #fff; }
 .btn-danger:hover { background: #C94141; box-shadow: 0 8px 24px rgba(178, 58, 58, 0.4); }
 
+/* --- Кнопка "Скопировать ссылку" --- */
+.btn-copy {
+  margin-top: 4px;
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 220px;
+  letter-spacing: 0.2px;
+  background: var(--accent-gold);
+  color: var(--bg-main);
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+.btn-copy:hover { background: #ffc91f; box-shadow: 0 6px 18px rgba(242, 183, 5, 0.4); }
+.btn-copy.copied {
+  background: var(--accent-teal);
+  color: #063226;
+  box-shadow: 0 6px 18px rgba(42, 179, 166, 0.45);
+}
+
 /* ============ ЭКРАН НАСТРОЙКИ ============ */
 .setup-screen {
   position: fixed;
@@ -437,6 +457,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
     justify-content: center;
     gap: 12px;
     padding: 8px 10px;
+    flex-wrap: wrap;
   }
   .side-qr-title { display: none; }
   .side-qr .join-link { max-width: 150px; font-size: 10px; }
@@ -445,6 +466,11 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   body.state-cloud   .side-qr .qr-box canvas,
   body.state-cloud   .side-qr .qr-box img {
     width: 96px !important; height: 96px !important;
+  }
+  .side-qr .btn-copy {
+    max-width: 140px;
+    padding: 8px 10px;
+    font-size: 12px;
   }
 
   .control-bar {
