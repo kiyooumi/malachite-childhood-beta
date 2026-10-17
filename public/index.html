@@ -244,20 +244,20 @@
         return;
       }
 
-      // 1. Находим самое популярное слово (максимальное количество повторов)
       const maxCount = Math.max(...words.map(w => w.count), 1);
-      
-      // 2. Задаем лимит слов, на который рассчитан экран.
-      // Если уникальных слов меньше 80 — они остаются крупными. Если больше — уменьшаются.
       const totalUnique = words.length;
-      const capacity = Math.max(totalUnique, 80); 
 
-      // 3. Считаем базовый размер шрифта для самого популярного слова
-      // 300 — это примерно высота/ширина экрана в пикселях, деленная на количество слов.
-      // Чем больше лимит (capacity), тем меньше базовый размер.
-      const baseMaxSize = 320 / Math.sqrt(capacity);
+      // МАГИЯ ЗДЕСЬ:
+      // Если слов 1-5, размер 150-250px.
+      // Если 20 слов, размер падает до 80px.
+      // Если 50 слов, падает до 50px.
+      let baseMaxSize;
+      if (totalUnique <= 6) {
+        baseMaxSize = 240; // ОГРОМНЫЕ слова в начале
+      } else {
+        baseMaxSize = Math.max(50, 600 / Math.sqrt(totalUnique));
+      }
 
-      // Перемешиваем для хаотичности
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
 
       cloudEl.innerHTML = '';
@@ -266,19 +266,13 @@
         span.className = 'word';
         span.textContent = item.word;
 
-        // 4. Считаем размер конкретного слова.
-        // Вес слова (от 0.4 до 1.0): если повторов мало — слово мелкое, если максимум — крупное.
-        const weight = 0.4 + 0.6 * (item.count / maxCount);
+        const weight = 0.5 + 0.5 * (item.count / maxCount);
+        let size = Math.round(baseMaxSize * weight);
         
-        // Итоговый размер
-        const size = Math.round(baseMaxSize * weight);
-        
-        // Чтобы слова не были микроскопическими, ставим минимум 24px
-        span.style.fontSize = Math.max(24, size) + 'px';
+        span.style.fontSize = Math.max(32, size) + 'px';
 
-        // Хаотичный поворот и сдвиг
-        const rot = (Math.random() * 16 - 8).toFixed(1);
-        const dy = Math.round((Math.random() - 0.5) * size * 0.4);
+        const rot = (Math.random() * 20 - 10).toFixed(1);
+        const dy = Math.round((Math.random() - 0.5) * size * 0.3);
         
         span.style.transform = `rotate(${rot}deg) translateY(${dy}px)`;
         span.style.color = COLORS[i % COLORS.length];
@@ -292,7 +286,6 @@
         cloudEl.appendChild(span);
       });
     }
-
     // === МЕНЮ-ПУЛЬТ ===
     function setMenuOpen(open) {
       controlBar.classList.toggle('collapsed', !open);
