@@ -31,15 +31,22 @@ function serializeWords(cloud) {
     .sort((a, b) => b.count - a.count);
 }
 
+function stats(cloud) {
+  return {
+    participants: cloud.participants.size,
+    totalWords: Array.from(cloud.words.values()).reduce((a, b) => a + b, 0),
+    locked: cloud.locked,
+    uniqueWords: cloud.words.size
+  };
+}
+
 function broadcastCloud(code) {
   const cloud = clouds.get(code);
   if (!cloud) return;
   io.emit('cloudUpdate', {
     code,
     words: serializeWords(cloud),
-    participants: cloud.participants.size,
-    totalWords: Array.from(cloud.words.values()).reduce((a, b) => a + b, 0),
-    locked: cloud.locked
+    ...stats(cloud)
   });
 }
 
@@ -121,28 +128,41 @@ io.on('connection', (socket) => {
     broadcastCloud(code);
   });
 
+  // Удаление конкретного слова (по названию, как оно отображается)
+  socket.on('hostRemoveWord', ({ code, word }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    const target = String(word || '');
+    for (const k of Array.from(cloud.words.keys())) {
+      if (k === target) {
+        cloud.words.delete(k);
+        break;
+      }
+    }
+    broadcastCloud(code);
+  });
+
+  // Уменьшить счётчик слова на 1 (если случайно накрутили)
+  socket.on('hostDecrementWord', ({ code, word }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    const target = String(word || '');
+    for (const k of Array.from(cloud.words.keys())) {
+      if (k === target) {
+        const c = cloud.words.get(k) || 0;
+        if (c <= 1) cloud.words.delete(k);
+        else cloud.words.set(k, c - 1);
+        break;
+      }
+    }
+    broadcastCloud(code);
+  });
+
   socket.on('hostClear', ({ code }) => {
     const cloud = clouds.get(code);
     if (!cloud) return;
     cloud.words.clear();
     cloud.participants.clear();
-    broadcastCloud(code);
-  });
-
-  // НОВОЕ: Ведущий удаляет одно слово из облака (гость об этом не уведомляется)
-  socket.on('hostRemoveWord', ({ code, word }) => {
-    const cloud = clouds.get(code);
-    if (!cloud) return;
-    const target = String(word || '').trim();
-    if (!target) return;
-
-    let foundKey = null;
-    for (const k of cloud.words.keys()) {
-      if (k.toLowerCase() === target.toLowerCase()) { foundKey = k; break; }
-    }
-    if (!foundKey) return;
-
-    cloud.words.delete(foundKey);
     broadcastCloud(code);
   });
 
