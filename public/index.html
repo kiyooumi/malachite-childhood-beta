@@ -63,29 +63,18 @@
       </aside>
     </main>
 
-    <!-- Кнопка-гамбургер для пульта -->
-    <button id="menuToggle" class="menu-toggle" type="button" aria-label="Меню">☰</button>
-
-    <!-- Пульт (сворачиваемый) -->
-    <div id="controlBar" class="control-bar collapsed">
-      <div class="control-bar-inner">
-        <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
-        <button id="btnDeleteMode" class="btn btn-small btn-outline-danger" type="button">🗑 Удалить слово</button>
-        <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
-        <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
-        <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
-        <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
-        <div class="manual-add">
-          <input id="manualInput" class="input input-small" type="text"
-                 placeholder="Добавить слово вручную" maxlength="30" />
-          <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
-        </div>
+    <!-- Пульт -->
+    <div class="control-bar">
+      <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
+      <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
+      <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
+      <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
+      <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
+      <div class="manual-add">
+        <input id="manualInput" class="input input-small" type="text"
+               placeholder="Добавить слово вручную" maxlength="30" />
+        <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
       </div>
-    </div>
-
-    <!-- Подсказка режима удаления -->
-    <div id="deleteHint" class="delete-hint" hidden>
-      Режим удаления: нажмите на слово, чтобы убрать его. Esc — выйти.
     </div>
 
     <!-- ОВЕРЛЕЙ: ПОЛНОЭКРАННЫЙ QR -->
@@ -126,12 +115,7 @@
     const statPeople  = document.getElementById('statPeople');
     const joinLink    = document.getElementById('joinLink');
 
-    const menuToggle  = document.getElementById('menuToggle');
-    const controlBar  = document.getElementById('controlBar');
-
     const btnLock     = document.getElementById('btnLock');
-    const btnDeleteMode = document.getElementById('btnDeleteMode');
-    const deleteHint  = document.getElementById('deleteHint');
     const btnFullQr   = document.getElementById('btnFullQr');
     const btnTop3     = document.getElementById('btnTop3');
     const btnCsv      = document.getElementById('btnCsv');
@@ -152,7 +136,6 @@
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
-    let deleteMode = false;
     let hasFirstWord = false;
     let qrMain = null;
     let qrBigInstance = null;
@@ -171,7 +154,6 @@
       currentWords = [];
       hasFirstWord = false;
       isLocked = false;
-      setDeleteMode(false);
       document.body.classList.add('state-waiting');
       document.body.classList.remove('state-cloud');
 
@@ -193,7 +175,7 @@
         text: guestUrl, width: 220, height: 220,
         colorDark: '#0F4D3A', colorLight: '#FFFFFF',
         correctLevel: QRCode.CorrectLevel.H
-});
+      });
 
       qrBig.innerHTML = '';
       qrBigInstance = new QRCode(qrBig, {
@@ -235,7 +217,7 @@
 
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
 
-   function renderCloud(words, participants, totalWords, locked) {
+    function renderCloud(words, participants, totalWords, locked) {
       statWords.textContent = totalWords;
       statPeople.textContent = participants;
 
@@ -244,69 +226,18 @@
         return;
       }
 
-      const maxCount = Math.max(...words.map(w => w.count), 1);
-      const totalUnique = words.length;
-
-      // МАГИЯ ЗДЕСЬ:
-      // Если слов 1-5, размер 150-250px.
-      // Если 20 слов, размер падает до 80px.
-      // Если 50 слов, падает до 50px.
-      let baseMaxSize;
-      if (totalUnique <= 6) {
-        baseMaxSize = 240; // ОГРОМНЫЕ слова в начале
-      } else {
-        baseMaxSize = Math.max(50, 600 / Math.sqrt(totalUnique));
-      }
-
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
-
       cloudEl.innerHTML = '';
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
         span.className = 'word';
         span.textContent = item.word;
-
-        const weight = 0.5 + 0.5 * (item.count / maxCount);
-        let size = Math.round(baseMaxSize * weight);
-        
-        span.style.fontSize = Math.max(32, size) + 'px';
-
-        const rot = (Math.random() * 20 - 10).toFixed(1);
-        const dy = Math.round((Math.random() - 0.5) * size * 0.3);
-        
-        span.style.transform = `rotate(${rot}deg) translateY(${dy}px)`;
+        span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
         span.style.color = COLORS[i % COLORS.length];
         span.style.opacity = locked ? '0.55' : '1';
-
-        span.addEventListener('click', () => {
-          if (!deleteMode || !currentCode) return;
-          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
-        });
-
         cloudEl.appendChild(span);
       });
     }
-    // === МЕНЮ-ПУЛЬТ ===
-    function setMenuOpen(open) {
-      controlBar.classList.toggle('collapsed', !open);
-      controlBar.classList.toggle('open', !!open);
-      menuToggle.classList.toggle('open', !!open);
-      menuToggle.textContent = open ? '✕' : '☰';
-    }
-
-    menuToggle.addEventListener('click', () => {
-      setMenuOpen(controlBar.classList.contains('collapsed'));
-    });
-
-    // === РЕЖИМ УДАЛЕНИЯ СЛОВ ===
-    function setDeleteMode(on) {
-      deleteMode = !!on;
-      document.body.classList.toggle('delete-mode', deleteMode);
-      btnDeleteMode.classList.toggle('active', deleteMode);
-      deleteHint.hidden = !deleteMode;
-    }
-
-    btnDeleteMode.addEventListener('click', () => setDeleteMode(!deleteMode));
 
     // Открытие/закрытие оверлеев
     function openOverlay(el) { el.hidden = false; document.body.classList.add('overlay-open'); }
@@ -332,13 +263,7 @@
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key
-
-=== 'Escape') {
-        if (deleteMode) setDeleteMode(false);
-        if (!controlBar.classList.contains('collapsed')) setMenuOpen(false);
-        closeAllOverlays();
-      }
+      if (e.key === 'Escape') closeAllOverlays();
     });
 
     btnTop3.addEventListener('click', () => {
