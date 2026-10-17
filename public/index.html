@@ -24,14 +24,13 @@
              placeholder="Например: Каким должно быть детство?" maxlength="200" />
       <button id="createBtn" class="btn" type="button">Создать облако</button>
 
-      <p class="setup-hint">После создания появится код и QR для гостей</p>
+      <p class="setup-hint">После создания откроется сцена и пульт управления</p>
     </div>
   </section>
 
-  <!-- ЭКРАН КОМНАТЫ -->
+  <!-- ЭКРАН КОМНАТЫ (СЦЕНА) -->
   <section id="roomScreen" class="room-screen" hidden>
 
-    <!-- Шапка: вопрос + статистика + код -->
     <header class="room-header">
       <div class="header-left">
         <h2 id="questionBanner" class="question-text">—</h2>
@@ -48,7 +47,6 @@
       </div>
     </header>
 
-    <!-- Основная зона: облако + боковой QR -->
     <main class="cloud-area">
       <div class="cloud-wrap">
         <div id="cloud" class="cloud">
@@ -60,44 +58,11 @@
         <div class="side-qr-title">ПРИСОЕДИНЯЙТЕСЬ</div>
         <div id="qrcode" class="qr-box"></div>
         <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
-        <button id="copyBtn" class="btn btn-copy" type="button">Скопировать ссылку</button>
       </aside>
     </main>
 
-    <!-- Пульт -->
-    <div class="control-bar">
-      <button id="btnLock" class="btn btn-small" type="button">⏸ Стоп</button>
-      <button id="btnFullQr" class="btn btn-small" type="button">QR во весь экран</button>
-      <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
-      <button id="btnCsv" class="btn btn-small" type="button">Скачать CSV</button>
-      <button id="btnClear" class="btn btn-small btn-danger" type="button">Очистить всё</button>
-      <div class="manual-add">
-        <input id="manualInput" class="input input-small" type="text"
-               placeholder="Добавить слово вручную" maxlength="30" />
-        <button id="btnManualAdd" class="btn btn-small" type="button">На экран</button>
-      </div>
-    </div>
-
-    <!-- ОВЕРЛЕЙ: ПОЛНОЭКРАННЫЙ QR -->
-    <div id="qrOverlay" class="overlay" hidden>
-      <div class="overlay-inner">
-        <div class="overlay-title">Отсканируйте QR-код</div>
-        <div id="qrBig" class="qr-big"></div>
-        <div class="overlay-code" id="codeBig">------</div>
-        <a id="joinLinkBig" class="join-link join-link-big" href="#" target="_blank" rel="noopener">—</a>
-        <button id="copyBtnBig" class="btn btn-copy" type="button">Скопировать ссылку</button>
-        <button id="btnCloseQr" class="btn" type="button">Вернуть облако</button>
-      </div>
-    </div>
-
-    <!-- ОВЕРЛЕЙ: ТОП-3 -->
-    <div id="topOverlay" class="overlay" hidden>
-      <div class="overlay-inner">
-        <div class="overlay-title">Топ-3 слова</div>
-        <ol id="topList" class="top-list"></ol>
-        <button id="btnCloseTop" class="btn" type="button">Вернуть облако</button>
-      </div>
-    </div>
+    <!-- Бейдж "приём приостановлен" — виден и на сцене, чтобы гости понимали -->
+    <div id="pausedBadge" class="paused-badge" hidden>⏸ Приём слов приостановлен</div>
 
   </section>
 
@@ -105,44 +70,23 @@
   <script>
     const socket = io();
 
-    const setupScreen = document.getElementById('setupScreen');
-    const roomScreen  = document.getElementById('roomScreen');
+    const setupScreen   = document.getElementById('setupScreen');
+    const roomScreen    = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
-    const createBtn   = document.getElementById('createBtn');
+    const createBtn     = document.getElementById('createBtn');
     const questionBanner = document.getElementById('questionBanner');
-    const codeValue   = document.getElementById('codeValue');
-    const qrcodeEl    = document.getElementById('qrcode');
-    const cloudEl     = document.getElementById('cloud');
-    const statWords   = document.getElementById('statWords');
-    const statPeople  = document.getElementById('statPeople');
-    const joinLink    = document.getElementById('joinLink');
-    const copyBtn     = document.getElementById('copyBtn');
-
-    const btnLock     = document.getElementById('btnLock');
-    const btnFullQr   = document.getElementById('btnFullQr');
-    const btnTop3     = document.getElementById('btnTop3');
-    const btnCsv      = document.getElementById('btnCsv');
-    const btnClear    = document.getElementById('btnClear');
-    const manualInput = document.getElementById('manualInput');
-    const btnManualAdd = document.getElementById('btnManualAdd');
-
-    const qrOverlay   = document.getElementById('qrOverlay');
-    const qrBig       = document.getElementById('qrBig');
-    const codeBig     = document.getElementById('codeBig');
-    const joinLinkBig = document.getElementById('joinLinkBig');
-    const copyBtnBig  = document.getElementById('copyBtnBig');
-    const btnCloseQr  = document.getElementById('btnCloseQr');
-
-    const topOverlay  = document.getElementById('topOverlay');
-    const topList     = document.getElementById('topList');
-    const btnCloseTop = document.getElementById('btnCloseTop');
+    const codeValue     = document.getElementById('codeValue');
+    const qrcodeEl      = document.getElementById('qrcode');
+    const cloudEl       = document.getElementById('cloud');
+    const statWords     = document.getElementById('statWords');
+    const statPeople    = document.getElementById('statPeople');
+    const joinLink      = document.getElementById('joinLink');
+    const pausedBadge   = document.getElementById('pausedBadge');
 
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
     let hasFirstWord = false;
-    let qrMain = null;
-    let qrBigInstance = null;
 
     createBtn.addEventListener('click', () => {
       const q = questionInput.value.trim();
@@ -166,35 +110,44 @@
 
       questionBanner.textContent = question;
       codeValue.textContent = code;
-      codeBig.textContent = code;
 
       const guestUrl = window.location.origin + '/guest?code=' + code;
       joinLink.textContent = guestUrl;
       joinLink.href = guestUrl;
-      joinLinkBig.textContent = guestUrl;
-      joinLinkBig.href = guestUrl;
 
       qrcodeEl.innerHTML = '';
-      qrMain = new QRCode(qrcodeEl, {
+      new QRCode(qrcodeEl, {
         text: guestUrl, width: 220, height: 220,
         colorDark: '#0F4D3A', colorLight: '#FFFFFF',
         correctLevel: QRCode.CorrectLevel.H
       });
 
-      qrBig.innerHTML = '';
-      qrBigInstance = new QRCode(qrBig, {
-        text: guestUrl, width: 480, height: 480,
-        colorDark: '#0F4D3A', colorLight: '#FFFFFF',
-        correctLevel: QRCode.CorrectLevel.H
-      });
-
       renderCloud([], 0, 0, false);
+
+      // Открываем пульт во втором окне автоматически.
+      // На одном мониторе он откроется поверх, на двух — уйдёт на второй экран.
+      openControlWindow(code);
     });
+
+    function openControlWindow(code) {
+      const url = '/control.html?code=' + encodeURIComponent(code);
+      const w = 520, h = 900;
+      const win = window.open(
+        url,
+        'malachite-control',
+        `popup=yes,width=${w},height=${h}`
+      );
+      if (!win) {
+        // Браузер заблокировал popup — показываем подсказку
+        console.warn('Пульт не открылся: разрешите всплывающие окна для этого сайта.');
+      }
+    }
 
     socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
       if (!currentCode || code !== currentCode) return;
       currentWords = words || [];
       isLocked = !!locked;
+      pausedBadge.hidden = !isLocked;
 
       renderCloud(currentWords, participants || 0, totalWords || 0, isLocked);
 
@@ -209,14 +162,12 @@
         document.body.classList.remove('state-cloud');
         document.body.classList.add('state-waiting');
       }
-
-      btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
     });
 
     socket.on('hostState', ({ code, locked }) => {
       if (code !== currentCode) return;
       isLocked = !!locked;
-      btnLock.textContent = isLocked ? '▶ Возобновить' : '⏸ Стоп';
+      pausedBadge.hidden = !isLocked;
     });
 
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
@@ -241,141 +192,6 @@
         span.style.opacity = locked ? '0.55' : '1';
         cloudEl.appendChild(span);
       });
-    }
-
-    // Открытие/закрытие оверлеев
-    function openOverlay(el) { el.hidden = false; document.body.classList.add('overlay-open'); }
-    function closeAllOverlays() {
-      qrOverlay.hidden = true;
-      topOverlay.hidden = true;
-      document.body.classList.remove('overlay-open');
-    }
-
-    btnLock.addEventListener('click', () => {
-      if (!currentCode) return;
-      socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked });
-    });
-
-    btnFullQr.addEventListener('click', () => openOverlay(qrOverlay));
-    btnCloseQr.addEventListener('click', (e) => { e.stopPropagation(); closeAllOverlays(); });
-
-    qrOverlay.addEventListener('click', (e) => {
-      if (e.target === qrOverlay) closeAllOverlays();
-    });
-    topOverlay.addEventListener('click', (e) => {
-      if (e.target === topOverlay) closeAllOverlays();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeAllOverlays();
-    });
-
-    // ===== Кнопки «Скопировать ссылку» =====
-    function copyToClipboard(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text);
-      }
-      // Fallback для http:// и старых браузеров
-      return new Promise((resolve, reject) => {
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.setAttribute('readonly', '');
-          ta.style.position = 'fixed';
-          ta.style.top = '-1000px';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          ta.setSelectionRange(0, ta.value.length);
-          const ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          ok ? resolve() : reject(new Error('execCommand copy failed'));
-        } catch (err) { reject(err); }
-      });
-    }
-
-    function flashCopied(btn, ok) {
-      if (!btn.dataset.original) btn.dataset.original = btn.textContent;
-      btn.textContent = ok ? '✓ Скопировано!' : 'Не удалось :(';
-      btn.classList.toggle('copied', ok);
-      clearTimeout(btn._copyTimer);
-      btn._copyTimer = setTimeout(() => {
-        btn.textContent = btn.dataset.original;
-        btn.classList.remove('copied');
-      }, 1800);
-    }
-
-    function bindCopy(btn, getUrl) {
-      btn.addEventListener('click', () => {
-        const url = getUrl();
-        if (!url) return;
-        copyToClipboard(url)
-          .then(() => flashCopied(btn, true))
-          .catch(() => flashCopied(btn, false));
-      });
-    }
-
-    bindCopy(copyBtn,    () => joinLink.href);
-    bindCopy(copyBtnBig, () => joinLinkBig.href);
-
-    // ===== Остальной пульт =====
-    btnTop3.addEventListener('click', () => {
-      const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
-      topList.innerHTML = '';
-      if (top.length === 0) {
-        topList.innerHTML = '<li class="top-empty">Пока нет слов</li>';
-      } else {
-        top.forEach((item, i) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span class="top-rank">${i + 1}</span>
-                          <span class="top-word">${escapeHtml(item.word)}</span>
-                          <span class="top-count">×${item.count}</span>`;
-          topList.appendChild(li);
-        });
-      }
-      openOverlay(topOverlay);
-    });
-    btnCloseTop.addEventListener('click', (e) => { e.stopPropagation(); closeAllOverlays(); });
-
-    btnCsv.addEventListener('click', () => {
-      if (currentWords.length === 0) return;
-      const rows = [['Слово', 'Количество']];
-      currentWords.slice().sort((a, b) => b.count - a.count)
-        .forEach(w => rows.push([w.word, w.count]));
-      const csv = rows.map(r =>
-        r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      ).join('\r\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cloud-${currentCode}-${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-
-    btnClear.addEventListener('click', () => {
-      if (!currentCode) return;
-      if (!confirm('Очистить все слова и участников?')) return;
-      socket.emit('hostClear', { code: currentCode });
-    });
-
-    btnManualAdd.addEventListener('click', () => {
-      const w = manualInput.value.trim();
-      if (!w || !currentCode) return;
-      socket.emit('hostAddWord', { code: currentCode, word: w });
-      manualInput.value = '';
-    });
-    manualInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') btnManualAdd.click();
-    });
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
     }
   </script>
 </body>
