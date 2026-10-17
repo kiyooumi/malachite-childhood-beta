@@ -205,16 +205,23 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   justify-content: center;
   align-items: center;
   align-content: center;
-  gap: 2px 6px;             /* расстояние между словами уменьшено */
+  /* Плотные отступы: слова липнут друг к другу, но не слипаются */
+  gap: 2px 8px;
+  /* Небольшой внутренний отступ, чтобы слова не прилипали к краям */
+  padding: 6px 10px;
 }
 
 .cloud .word {
   font-weight: 800;
-  line-height: 1;
-  padding: 0 2px;           /* внутренние отступы слова уменьшены */
+  line-height: 0.95;
+  padding: 0 4px;
   animation: pop 0.4s ease;
-  transition: font-size 0.4s ease, color 0.4s ease, opacity 0.4s ease;
+  transition: font-size 0.5s ease, color 0.4s ease, opacity 0.4s ease,
+              transform 0.5s ease;
   white-space: nowrap;
+  /* Начальный поворот задаётся в JS через --rot */
+  display: inline-block;
+  will-change: transform, font-size;
 }
 
 @keyframes pop {
@@ -604,4 +611,22 @@ max-width: 480px {
   body.state-waiting .code-value,
   body.state-cloud   .code-value { font-size: 30px; letter-spacing: 3px; }
   .header-hint { display: none; }
+}
+/* ============ ХАОТИЧНОЕ ОБЛАКО ============ */
+/* Слова не должны ломаться в середине, но при переполнении экрана
+   переносятся — иначе flex перестанет раскладывать их равномерно */
+.cloud .word {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Плавное появление каждого слова */
+@keyframes cloudPop {
+  0%   { transform: scale(0.4) rotate(var(--rot, 0deg)); opacity: 0; }
+  70%  { transform: scale(1.06) rotate(var(--rot, 0deg)); opacity: 1; }
+  100% { transform: scale(1) rotate(var(--rot, 0deg)); }
+}
+.cloud .word {
+  animation: cloudPop 0.5s ease;
 }
