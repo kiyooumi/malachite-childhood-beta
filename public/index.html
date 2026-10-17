@@ -292,15 +292,6 @@
         cloudEl.appendChild(span);
       });
     }
-        span.style.color = COLORS[i % COLORS.length];
-        span.style.opacity = locked ? '0.55' : '1';
-
-        span.addEventListener('click', () => {
-          if (!deleteMode || !currentCode) return;
-          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
-        });
-
-        cloudEl.appendChild(span);
 
     // === МЕНЮ-ПУЛЬТ ===
     function setMenuOpen(open) {
