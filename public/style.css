@@ -197,27 +197,17 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   justify-content: center;
 }
 
-.cloud {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  align-content: center;
-  gap: 4px 10px; /* Отступы между словами */
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-}
-
+/* Делаем шрифт максимально жирным для актового зала */
 .cloud .word {
-  font-weight: 800;
-  line-height: 1;
-  white-space: nowrap;
-  transition: font-size 0.4s ease, transform 0.4s ease;
-  /* Добавляем плавное появление */
-  animation: pop 0.4s ease; 
+  font-weight: 900; 
+  letter-spacing: -1px; /* Чуть сжимаем буквы, чтобы слова были компактнее */
+  padding: 0 4px;
 }
 
+/* Уменьшаем отступы между словами, чтобы они плотно прилегали */
+.cloud {
+  gap: 0px 8px; 
+}
 @keyframes pop {
   0%   { transform: scale(0.6); opacity: 0; }
   60%  { transform: scale(1.12); opacity: 1; }
