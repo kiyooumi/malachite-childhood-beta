@@ -23,6 +23,11 @@
       <label class="field-label" for="wordInput">Ваше слово</label>
       <input type="text" id="wordInput" class="input" maxlength="40" placeholder="Одно слово">
 
+      <div id="quotaBar" class="quota-bar" hidden>
+        <span id="quotaText">0 / 0</span>
+        <div class="quota-track"><div id="quotaFill" class="quota-fill"></div></div>
+      </div>
+
       <button id="sendBtn" class="btn" type="button">Отправить</button>
       <p id="statusMsg" class="status" hidden></p>
     </section>
@@ -37,12 +42,19 @@
     const socket = io();
 
     const params = new URLSearchParams(window.location.search);
-    const urlCode = params.get('code') || '';
+    const urlCode = (params.get('code') || '').trim();
 
     const codeInput = document.getElementById('codeInput');
     const wordInput = document.getElementById('wordInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusMsg = document.getElementById('statusMsg');
+    const quotaBar = document.getElementById('quotaBar');
+    const quotaText = document.getElementById('quotaText');
+    const quotaFill = document.getElementById('quotaFill');
+
+    let currentCode = null;
+    let limit = 0;
+    let used = 0;
 
     if (urlCode) {
       codeInput.value = urlCode;
@@ -50,13 +62,25 @@
       wordInput.focus();
     }
 
+    function setCode(code) {
+      if (!code || !/^\d{6}$/.test(code)) return;
+      currentCode = code;
+      socket.emit('requestQuota', { code });
+    }
+
+    if (urlCode && /^\d{6}$/.test(urlCode)) setCode(urlCode);
+
     function send() {
-      const code = codeInput.value.trim();
+      const code = currentCode || codeInput.value.trim();
       const word = wordInput.value.trim();
 
       if (!/^\d{6}$/.test(code)) {
         showStatus('Введите код комнаты — 6 цифр', true);
         return;
+      }
+      if (!codeInput.readOnly) {
+        codeInput.readOnly = true;
+        setCode(code);
       }
       if (!word) {
         showStatus('Введите слово', true);
@@ -64,14 +88,32 @@
       }
 
       socket.emit('submitWord', { code, word });
-      wordInput.value = '';
-      showStatus('Слово отправлено!', false);
     }
 
     function showStatus(text, isError) {
       statusMsg.hidden = false;
       statusMsg.textContent = text;
       statusMsg.classList.toggle('error', isError);
+    }
+
+    function renderQuota() {
+      if (limit > 0) {
+        quotaBar.hidden = false;
+        quotaText.textContent = used + ' / ' + limit + ' слов';
+        const pct = Math.min(100, Math.round((used / limit) * 100));
+        quotaFill.style.width = pct + '%';
+        const exhausted = used >= limit;
+        quotaFill.classList.toggle('full', exhausted);
+        sendBtn.disabled = exhausted;
+        wordInput.disabled = exhausted;
+        if (exhausted) {
+          showStatus('Лимит исчерпан. Спасибо за участие!', false);
+        }
+      } else {
+        quotaBar.hidden = true;
+        sendBtn.disabled = false;
+        wordInput.disabled = false;
+      }
     }
 
     sendBtn.addEventListener('click', send);
@@ -81,9 +123,31 @@
     codeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') wordInput.focus();
     });
+    codeInput.addEventListener('change', () => {
+      const code = codeInput.value.trim();
+      if (/^\d{6}$/.test(code)) setCode(code);
+    });
 
     socket.on('errorMessage', ({ message }) => showStatus(message, true));
-    socket.on('wordAccepted', () => showStatus('Слово отправлено!', false));
+
+    socket.on('wordAccepted', ({ word, used: u, limit: l }) => {
+      used = u;
+      limit = l;
+      renderQuota();
+      wordInput.value = '';
+      if (used < limit || limit === 0) {
+        wordInput.focus();
+        showStatus('Слово «' + word + '» принято.', false);
+      }
+    });
+
+    socket.on('quotaUpdate', ({ code, used: u, limit: l }) => {
+      if (currentCode && code !== currentCode) return;
+      currentCode = code;
+      used = u;
+      limit = l;
+      renderQuota();
+    });
   </script>
 </body>
 </html>
