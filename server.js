@@ -15,7 +15,14 @@ app.get('/guest', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'guest.html'));
 });
 
-// code -> { question, words: Map(word -> count), participants: Set(socketId), locked: bool }
+// code -> {
+//   question,
+//   words: Map(word -> count),
+//   participants: Set(socketId),
+//   guestCounts: Map(socketId -> number),
+//   limitPerGuest: number,   // 0 = без лимита
+//   locked: bool
+// }
 const clouds = new Map();
 
 function generateCode() {
@@ -36,7 +43,11 @@ function stats(cloud) {
     participants: cloud.participants.size,
     totalWords: Array.from(cloud.words.values()).reduce((a, b) => a + b, 0),
     locked: cloud.locked,
-    uniqueWords: cloud.words.size
+    uniqueWords: cloud.words.size,
+    limitPerGuest: cloud.limitPerGuest,
+    maxTotalWords: cloud.limitPerGuest > 0
+      ? cloud.participants.size * cloud.limitPerGuest
+      : null
   };
 }
 
@@ -65,6 +76,20 @@ function addWord(cloud, rawWord) {
   return finalKey;
 }
 
+function guestUsed(cloud, socketId) {
+  return cloud.guestCounts.get(socketId) || 0;
+}
+
+function sendQuota(socket, code) {
+  const cloud = clouds.get(code);
+  if (!cloud) return;
+  socket.emit('quotaUpdate', {
+    code,
+    used: guestUsed(cloud, socket.id),
+    limit: cloud.limitPerGuest
+  });
+}
+
 io.on('connection', (socket) => {
   console.log('Подключение:', socket.id);
 
@@ -76,6 +101,8 @@ io.on('connection', (socket) => {
       question: q,
       words: new Map(),
       participants: new Set(),
+      guestCounts: new Map(),
+      limitPerGuest: 0,
       locked: false
     });
     socket.data.role = 'host';
@@ -100,24 +127,63 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Проверка лимита
+    const used = guestUsed(cloud, socket.id);
+    if (cloud.limitPerGuest > 0 && used >= cloud.limitPerGuest) {
+      socket.emit('errorMessage', {
+        message: `Лимит исчерпан: ${used} из ${cloud.limitPerGuest}`
+      });
+      sendQuota(socket, code);
+      return;
+    }
+
     const finalKey = addWord(cloud, rawWord);
     if (!finalKey) return;
 
     cloud.participants.add(socket.id);
+    cloud.guestCounts.set(socket.id, used + 1);
     socket.data.code = code;
     socket.data.role = 'guest';
 
-    socket.emit('wordAccepted', { word: finalKey });
+    socket.emit('wordAccepted', {
+      word: finalKey,
+      used: used + 1,
+      limit: cloud.limitPerGuest
+    });
     broadcastCloud(code);
   });
 
-  // Пульт ведущего
+  // Гость запрашивает свой прогресс (при загрузке страницы)
+  socket.on('requestQuota', ({ code }) => {
+    const c = String(code || '').trim();
+    if (!c) return;
+    sendQuota(socket, c);
+  });
+
+  // ===== Пульт ведущего =====
+
   socket.on('hostToggleLock', ({ code, locked }) => {
     const cloud = clouds.get(code);
     if (!cloud) return;
     cloud.locked = !!locked;
     broadcastCloud(code);
     io.emit('hostState', { code, locked: cloud.locked });
+  });
+
+  socket.on('hostSetLimit', ({ code, limit }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    let n = parseInt(limit, 10);
+    if (isNaN(n) || n < 0) n = 0;
+    if (n > 100) n = 100;
+    cloud.limitPerGuest = n;
+    broadcastCloud(code);
+    // Каждому гостю в этой комнате обновляем квоту
+    for (const [id, s] of io.of('/').sockets) {
+      if (s.data && s.data.code === code && s.data.role === 'guest') {
+        sendQuota(s, code);
+      }
+    }
   });
 
   socket.on('hostAddWord', ({ code, word }) => {
@@ -128,21 +194,16 @@ io.on('connection', (socket) => {
     broadcastCloud(code);
   });
 
-  // Удаление конкретного слова (по названию, как оно отображается)
   socket.on('hostRemoveWord', ({ code, word }) => {
     const cloud = clouds.get(code);
     if (!cloud) return;
     const target = String(word || '');
     for (const k of Array.from(cloud.words.keys())) {
-      if (k === target) {
-        cloud.words.delete(k);
-        break;
-      }
+      if (k === target) { cloud.words.delete(k); break; }
     }
     broadcastCloud(code);
   });
 
-  // Уменьшить счётчик слова на 1 (если случайно накрутили)
   socket.on('hostDecrementWord', ({ code, word }) => {
     const cloud = clouds.get(code);
     if (!cloud) return;
@@ -163,13 +224,23 @@ io.on('connection', (socket) => {
     if (!cloud) return;
     cloud.words.clear();
     cloud.participants.clear();
+    cloud.guestCounts.clear();
     broadcastCloud(code);
+    // Обнуляем квоты у всех гостей комнаты
+    for (const [id, s] of io.of('/').sockets) {
+      if (s.data && s.data.code === code && s.data.role === 'guest') {
+        sendQuota(s, code);
+      }
+    }
   });
 
   socket.on('disconnect', () => {
     for (const [code, cloud] of clouds.entries()) {
       if (cloud.participants.has(socket.id)) {
         cloud.participants.delete(socket.id);
+        // НЕ удаляем guestCounts — если гость переподключится с тем же socket.id
+        // (маловероятно), или чтобы счётчик не «сбрасывался» в течение сессии.
+        // Но participants уменьшится, значит maxTotalWords в stats пересчитается.
         broadcastCloud(code);
       }
     }
