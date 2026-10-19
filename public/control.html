@@ -33,6 +33,25 @@
   <section class="control-actions">
     <button id="btnLock" class="btn btn-block" type="button">⏸ Приостановить приём</button>
 
+    <!-- Лимит слов на гостя -->
+    <div class="limit-box">
+      <div class="limit-head">
+        <span class="limit-title">Лимит слов на гостя</span>
+        <span id="limitSummary" class="limit-summary">Без лимита</span>
+      </div>
+      <div class="limit-row">
+        <input id="limitInput" class="input input-limit" type="number" min="0" max="100" value="0" />
+        <button id="btnApplyLimit" class="btn" type="button">Применить</button>
+      </div>
+      <div class="limit-presets">
+        <button class="chip" data-limit="1" type="button">1</button>
+        <button class="chip" data-limit="3" type="button">3</button>
+        <button class="chip" data-limit="5" type="button">5</button>
+        <button class="chip" data-limit="10" type="button">10</button>
+        <button class="chip" data-limit="0" type="button">Без лимита</button>
+      </div>
+    </div>
+
     <div class="manual-add">
       <input id="manualInput" class="input" type="text"
              placeholder="Добавить слово вручную" maxlength="30" />
@@ -49,7 +68,7 @@
   <section class="words-panel">
     <div class="words-head">
       <h3>Слова на сцене</h3>
-      <span class="words-hint">Клик по слову — удалить. Долгий клик / правый клик — уменьшить счётчик на 1.</span>
+      <span class="words-hint">Клик по слову — удалить. Кнопка «−» — уменьшить счётчик на 1.</span>
     </div>
     <div id="wordsList" class="words-list">
       <div class="words-empty">Пока нет слов</div>
@@ -89,21 +108,24 @@
     const topOverlay   = document.getElementById('topOverlay');
     const topList      = document.getElementById('topList');
 
+    const limitInput     = document.getElementById('limitInput');
+    const btnApplyLimit  = document.getElementById('btnApplyLimit');
+    const limitSummary   = document.getElementById('limitSummary');
+    const presetChips    = document.querySelectorAll('.chip[data-limit]');
+
     let currentWords = [];
     let isLocked = false;
+    let currentParticipants = 0;
+    let currentTotalWords = 0;
+    let currentLimit = 0;
 
     if (currentCode) codeLabel.textContent = currentCode;
 
-    // Кнопка «К сцене» — фокусирует окно со сценой (если оно есть)
     btnFocusStage.addEventListener('click', () => {
-      if (window.opener && !window.opener.closed) {
-        window.opener.focus();
-      } else {
-        window.open('/', 'malachite-stage');
-      }
+      if (window.opener && !window.opener.closed) window.opener.focus();
+      else window.open('/', 'malachite-stage');
     });
 
-    // Если код не пришёл в URL, но сцена создала облако — ловим hostLink
     socket.on('cloudCreated', ({ code }) => {
       if (!currentCode) {
         currentCode = code;
@@ -111,20 +133,30 @@
       }
     });
 
-    socket.on('cloudUpdate', ({ code, words, participants, totalWords, uniqueWords, locked }) => {
+    socket.on('cloudUpdate', (data) => {
+      const { code, words, participants, totalWords, uniqueWords, locked, limitPerGuest } = data;
       if (!currentCode || code !== currentCode) return;
 
       currentWords = words || [];
       isLocked = !!locked;
+      currentParticipants = participants || 0;
+      currentTotalWords = totalWords || 0;
+      currentLimit = limitPerGuest || 0;
 
-      statWords.textContent = totalWords || 0;
-      statPeople.textContent = participants || 0;
+      statWords.textContent = currentTotalWords;
+      statPeople.textContent = currentParticipants;
       statUnique.textContent = uniqueWords || currentWords.length;
       statLock.textContent = isLocked ? 'Пауза' : 'Активно';
       statLock.classList.toggle('status-paused', isLocked);
 
       btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём';
       btnLock.classList.toggle('btn-paused', isLocked);
+
+      // Синхронизируем поле лимита, если ведущий не редактирует прямо сейчас
+      if (document.activeElement !== limitInput) {
+        limitInput.value = currentLimit;
+      }
+      updateLimitSummary();
 
       renderWordsList();
     });
@@ -139,7 +171,6 @@
     });
 
     socket.on('errorMessage', ({ message }) => {
-      // мягко показываем во всплывающей строке
       const el = document.createElement('div');
       el.className = 'toast';
       el.textContent = message;
@@ -147,13 +178,42 @@
       setTimeout(() => el.remove(), 2200);
     });
 
-    // ====== Список слов с кнопками удаления ======
+    // ====== Лимит ======
+    function updateLimitSummary() {
+      if (currentLimit > 0) {
+        const max = currentParticipants * currentLimit;
+        limitSummary.textContent =
+          `${currentParticipants} гостей × ${currentLimit} = до ${max} слов`;
+      } else {
+        limitSummary.textContent = 'Без лимита';
+      }
+    }
+
+    function applyLimit(value) {
+      if (!currentCode) return;
+      socket.emit('hostSetLimit', { code: currentCode, limit: value });
+    }
+
+    btnApplyLimit.addEventListener('click', () => {
+      applyLimit(parseInt(limitInput.value, 10) || 0);
+    });
+    limitInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btnApplyLimit.click();
+    });
+    presetChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const v = parseInt(chip.dataset.limit, 10) || 0;
+        limitInput.value = v;
+        applyLimit(v);
+      });
+    });
+
+    // ====== Список слов ======
     function renderWordsList() {
       if (!currentWords || currentWords.length === 0) {
         wordsList.innerHTML = '<div class="words-empty">Пока нет слов</div>';
         return;
       }
-
       const sorted = currentWords.slice().sort((a, b) => b.count - a.count);
       wordsList.innerHTML = '';
 
@@ -169,31 +229,28 @@
         countEl.className = 'word-count';
         countEl.textContent = '×' + item.count;
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn icon-del';
-        delBtn.type = 'button';
-        delBtn.title = 'Удалить слово';
-        delBtn.innerHTML = '✕';
-
         const minusBtn = document.createElement('button');
         minusBtn.className = 'icon-btn icon-minus';
         minusBtn.type = 'button';
         minusBtn.title = 'Уменьшить счётчик на 1';
         minusBtn.innerHTML = '−';
 
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn icon-del';
+        delBtn.type = 'button';
+        delBtn.title = 'Удалить слово';
+        delBtn.innerHTML = '✕';
+
         delBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (!currentCode) return;
           socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
         });
-
         minusBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (!currentCode) return;
           socket.emit('hostDecrementWord', { code: currentCode, word: item.word });
         });
-
-        // Клик по строке — тоже удалить (быстрее на большом мониторе)
         row.addEventListener('click', () => {
           if (!currentCode) return;
           socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
@@ -269,7 +326,7 @@
 
     btnClear.addEventListener('click', () => {
       if (!currentCode) return;
-      if (!confirm('Очистить все слова и участников?')) return;
+      if (!confirm('Очистить все слова, участников и счётчики?')) return;
       socket.emit('hostClear', { code: currentCode });
     });
 
