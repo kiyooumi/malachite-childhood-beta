@@ -159,23 +159,25 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
 }
 
 .cloud-inner {
-  /* Убираем flex, используем обычный текстовый поток для выравнивания */
-  display: block;
   width: 100%;
-  max-width: 100%; /* Убираем жесткое ограничение в 1200px, пусть тянется до QR */
-  padding: 10px 20px;
-  text-align: justify; /* ВОТ ГЛАВНОЕ: выравнивание по ширине */
-  text-align-last: center; /* Последняя строка будет по центру */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  align-content: center;
+  gap: 10px 24px; 
+  padding: 10px;
   transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: center center;
 }
 
 .cloud .word {
-  display: inline-block; /* Слова должны быть блочно-строчными */
   font-weight: 800;
-  line-height: 1.2;
-  padding: 4px 8px; /* Отступы внутри слова для визуального отдаления */
-  margin: 2px 0; /* Отступы по вертикали между строками */
+  line-height: 1;
+  padding: 4px 8px;
+  /* Добавляем flex: 1 1 auto, чтобы слова заполняли пространство по ширине */
+  flex: 1 1 auto; 
+  text-align: center;
   animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transition: font-size 0.5s ease, color 0.3s ease, opacity 0.3s ease;
   white-space: nowrap;
