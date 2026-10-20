@@ -51,10 +51,12 @@
         </div>
       </div>
 
-      <aside class="side-qr">
+          <aside class="side-qr">
         <div class="side-qr-title">ПРИСОЕДИНЯЙТЕСЬ</div>
         <div id="qrcode" class="qr-box"></div>
         <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
+        <!-- Новая кнопка -->
+        <button id="copyBtn" class="btn btn-copy" type="button">Скопировать ссылку</button>
       </aside>
     </main>
 
@@ -76,6 +78,7 @@
     const statWords     = document.getElementById('statWords');
     const statPeople    = document.getElementById('statPeople');
     const joinLink      = document.getElementById('joinLink');
+    const copyBtn       = document.getElementById('copyBtn'); // Новая строка
     const pausedBadge   = document.getElementById('pausedBadge');
     const cloudInner    = document.getElementById('cloudInner');
 
@@ -216,6 +219,49 @@
         cloudInner.style.transform = `scale(${finalScale})`;
       });
     }
+        // === Логика копирования ссылки ===
+    function copyToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+      // Fallback для http:// и старых браузеров
+      return new Promise((resolve, reject) => {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '-1000px';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          ta.setSelectionRange(0, ta.value.length);
+          const ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+          ok ? resolve() : reject(new Error('execCommand copy failed'));
+        } catch (err) { reject(err); }
+      });
+    }
+
+    copyBtn.addEventListener('click', () => {
+      const url = joinLink.href;
+      if (!url || url === '#' || url === window.location.href + '#') return;
+
+      copyToClipboard(url)
+        .then(() => {
+          const originalText = copyBtn.textContent;
+          copyBtn.textContent = '✓ Скопировано!';
+          copyBtn.classList.add('copied');
+          setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.classList.remove('copied');
+          }, 2000);
+        })
+        .catch(() => {
+          copyBtn.textContent = 'Ошибка :(';
+          setTimeout(() => { copyBtn.textContent = 'Скопировать ссылку'; }, 2000);
+        });
+    });
   </script>
 </body>
 </html>
