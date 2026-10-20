@@ -12,25 +12,20 @@
 </head>
 <body class="state-waiting">
 
-  <!-- ЭКРАН НАСТРОЙКИ -->
   <section id="setupScreen" class="setup-screen">
     <div class="setup-card">
       <img src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
       <h1 class="setup-title">Облако слов</h1>
       <p class="setup-subtitle">Задайте вопрос — гости ответят одним словом</p>
-
       <label class="label" for="questionInput">Вопрос аудитории</label>
       <input id="questionInput" class="input" type="text"
              placeholder="Например: Каким должно быть детство?" maxlength="200" />
       <button id="createBtn" class="btn" type="button">Создать облако</button>
-
       <p class="setup-hint">После создания откроется сцена и пульт управления</p>
     </div>
   </section>
 
-  <!-- ЭКРАН КОМНАТЫ (СЦЕНА) -->
   <section id="roomScreen" class="room-screen" hidden>
-
     <header class="room-header">
       <div class="header-left">
         <h2 id="questionBanner" class="question-text">—</h2>
@@ -40,7 +35,6 @@
           <span id="statPeople">0</span> участников
         </p>
       </div>
-
       <div class="header-right">
         <div class="join-label">КОД КОМНАТЫ</div>
         <div id="codeValue" class="code-value">------</div>
@@ -61,9 +55,7 @@
       </aside>
     </main>
 
-    <!-- Бейдж "приём приостановлен" — виден и на сцене, чтобы гости понимали -->
     <div id="pausedBadge" class="paused-badge" hidden>⏸ Приём слов приостановлен</div>
-
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
@@ -123,24 +115,13 @@
       });
 
       renderCloud([], 0, 0, false);
-
-      // Открываем пульт во втором окне автоматически.
-      // На одном мониторе он откроется поверх, на двух — уйдёт на второй экран.
       openControlWindow(code);
     });
 
     function openControlWindow(code) {
       const url = '/control.html?code=' + encodeURIComponent(code);
-      const w = 520, h = 900;
-      const win = window.open(
-        url,
-        'malachite-control',
-        `popup=yes,width=${w},height=${h}`
-      );
-      if (!win) {
-        // Браузер заблокировал popup — показываем подсказку
-        console.warn('Пульт не открылся: разрешите всплывающие окна для этого сайта.');
-      }
+      const win = window.open(url, 'malachite-control', 'popup=yes,width=520,height=900');
+      if (!win) console.warn('Пульт не открылся: разрешите всплывающие окна.');
     }
 
     socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
@@ -170,7 +151,8 @@
       pausedBadge.hidden = !isLocked;
     });
 
-    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A'];
+    // === Обновлённая палитра и логика отрисовки ===
+    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
 
     function renderCloud(words, participants, totalWords, locked) {
       statWords.textContent = totalWords;
@@ -181,15 +163,40 @@
         return;
       }
 
+      // Находим максимальное количество вхождений
+      const maxCount = Math.max(...words.map(w => w.count));
+
+      // Перемешиваем для случайного порядка, как на референсе
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
+
       cloudEl.innerHTML = '';
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
         span.className = 'word';
         span.textContent = item.word;
-        span.style.fontSize = (16 + Math.sqrt(item.count) * 12) + 'px';
+
+        // === МАГИЯ РАЗМЕРА ===
+        // weight: 0 (редкое) ... 1 (самое частое)
+        // Если все слова уникальны (maxCount === 1), все получают 0.5
+        const weight = maxCount > 1 ? (item.count - 1) / (maxCount - 1) : 0.5;
+
+        // Ускоряем рост на старте: степень 0.65 даёт быстрый скачок от 1 к 2,
+        // затем плавное замедление ближе к максимуму.
+        const eased = Math.pow(weight, 0.65);
+        
+        // Итоговый размер: от 18px (редкие) до 108px (самое частое)
+        const size = 18 + eased * 90;
+
+        span.style.fontSize = size + 'px';
         span.style.color = COLORS[i % COLORS.length];
-        span.style.opacity = locked ? '0.55' : '1';
+        
+        // Немного прозрачности для редких слов, чтобы усилить контраст
+        span.style.opacity = locked ? '0.55' : (0.8 + weight * 0.2).toFixed(2);
+
+        // Случайный поворот для "живого" эффекта (как на картинке)
+        const rotate = (Math.random() * 6 - 3).toFixed(2); // от -3 до +3 градусов
+        span.style.transform = `rotate(${rotate}deg)`;
+
         cloudEl.appendChild(span);
       });
     }
