@@ -157,6 +157,8 @@
 
     // === Обновлённая палитра и логика отрисовки ===
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
+    // === Палитра ===
+    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
 
     function renderCloud(words, participants, totalWords, locked) {
       statWords.textContent = totalWords;
@@ -172,7 +174,6 @@
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
 
       cloudInner.innerHTML = '';
-      
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
         span.className = 'word';
@@ -192,14 +193,11 @@
         span.style.opacity = locked ? '0.5' : '1';
 
         cloudInner.appendChild(span);
-        
-        // Добавляем пробел после каждого слова (КРИТИЧНО для text-align: justify)
-        cloudInner.appendChild(document.createTextNode(' '));
       });
 
-      // === ЛОГИКА УЖИМАНИЯ ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ===
+      // === ЛОГИКА УЖИМАНИЯ (остается без изменений) ===
       requestAnimationFrame(() => {
-        const wrap = cloudEl.parentElement;
+        const wrap = cloudEl.parentElement; 
         const innerWidth = cloudInner.offsetWidth;
         const innerHeight = cloudInner.offsetHeight;
         
