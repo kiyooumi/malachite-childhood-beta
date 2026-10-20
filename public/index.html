@@ -164,10 +164,7 @@
         return;
       }
 
-      // Находим максимальное количество вхождений
       const maxCount = Math.max(...words.map(w => w.count));
-
-      // Перемешиваем для случайного порядка
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
 
       cloudEl.innerHTML = '';
@@ -176,30 +173,27 @@
         span.className = 'word';
         span.textContent = item.word;
 
-        // === НОВАЯ ЛОГИКА РАЗМЕРА ===
         let size;
 
         if (maxCount === 1) {
-          // Если все слова по 1 разу — делаем их одинакового среднего размера
-          size = 44; 
+          // Если все слова по 1 разу — делаем их крупными и одинаковыми
+          size = 56; 
         } else {
-          // weight: 0 (редкие) ... 1 (самое частое)
           const weight = (item.count - 1) / (maxCount - 1);
+          const eased = Math.pow(weight, 0.75); // Чуть плавнее
           
-          // Степень 0.8 дает более плавный рост. 
-          // 32px — базовый размер для слов с 1 упоминанием (уже не крошечные).
-          // 90px — потолок для самого частого слова.
-          const eased = Math.pow(weight, 0.8);
-          size = 32 + eased * 58; 
+          // 36px — минимальный размер (для слов с 1 разом)
+          // 100px — максимальный размер (для самого частого)
+          size = 36 + eased * 64; 
         }
 
         span.style.fontSize = size + 'px';
         span.style.color = COLORS[i % COLORS.length];
         
-        // Небольшая прозрачность для редких, чтобы добавить глубины
-        span.style.opacity = locked ? '0.55' : (0.85 + weight * 0.15).toFixed(2);
+        // Убрали динамическую прозрачность, чтобы слова не исчезали.
+        // Если приём приостановлен — просто делаем все слова полупрозрачными.
+        span.style.opacity = locked ? '0.5' : '1';
 
-        // Убрали повороты и transform
         cloudEl.appendChild(span);
       });
     }
