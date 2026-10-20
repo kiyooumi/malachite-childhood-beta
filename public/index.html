@@ -172,6 +172,7 @@
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
 
       cloudInner.innerHTML = '';
+      
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
         span.className = 'word';
@@ -191,29 +192,28 @@
         span.style.opacity = locked ? '0.5' : '1';
 
         cloudInner.appendChild(span);
+        
+        // Добавляем пробел после каждого слова (КРИТИЧНО для text-align: justify)
+        cloudInner.appendChild(document.createTextNode(' '));
       });
 
-      // === НОВАЯ ЛОГИКА УЖИМАНИЯ ===
-      // Ждём долю миллисекунды, чтобы браузер пересчитал размеры
+      // === ЛОГИКА УЖИМАНИЯ ОСТАЕТСЯ БЕЗ ИЗМЕНЕНИЙ ===
       requestAnimationFrame(() => {
-        const wrap = cloudEl.parentElement; // Блок .cloud-wrap
+        const wrap = cloudEl.parentElement;
         const innerWidth = cloudInner.offsetWidth;
         const innerHeight = cloudInner.offsetHeight;
         
-        // Отнимаем немного места на отступы
         const availableWidth = wrap.offsetWidth - 20; 
         const availableHeight = wrap.offsetHeight - 20;
 
         let scale = 1;
         
-        // Если контент шире или выше доступного места — вычисляем коэффициент
         if (innerWidth > availableWidth || innerHeight > availableHeight) {
           const scaleX = availableWidth / innerWidth;
           const scaleY = availableHeight / innerHeight;
-          scale = Math.min(scaleX, scaleY); // Берем меньший коэффициент
+          scale = Math.min(scaleX, scaleY); 
         }
 
-        // Применяем масштаб (не даем ему упасть ниже 0.3, чтобы не было нечитаемо)
         const finalScale = Math.max(0.3, scale);
         cloudInner.style.transform = `scale(${finalScale})`;
       });
