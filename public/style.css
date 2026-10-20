@@ -157,25 +157,21 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   justify-content: center;
   align-items: center;
   align-content: center;
-  /* Увеличенные отступы для "воздуха" как на картинке */
-  gap: 10px 24px;
+  /* Уменьшили отступы, чтобы слова были плотнее друг к другу */
+  gap: 8px 16px; 
   padding: 20px;
 }
 
 .cloud .word {
   font-weight: 800;
-  line-height: 1;
-  padding: 4px 8px;
-  /* Анимация появления */
-  animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  /* Плавный рост при обновлении */
-  transition: font-size 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), 
-              color 0.4s ease, 
-              opacity 0.4s ease,
-              transform 0.3s ease;
+  line-height: 1.1;
+  /* Убрали лишние отступы и повороты */
+  padding: 0 4px; 
+  /* Оставили только мягкое появление */
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* Плавная смена размера при обновлении */
+  transition: font-size 0.5s ease, color 0.3s ease, opacity 0.3s ease;
   white-space: nowrap;
-  /* Тень для читаемости на темном фоне */
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes pop {
