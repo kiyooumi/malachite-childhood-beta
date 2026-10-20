@@ -42,9 +42,12 @@
     </header>
 
     <main class="cloud-area">
-      <div class="cloud-wrap">
+            <div class="cloud-wrap">
         <div id="cloud" class="cloud">
-          <div class="cloud-empty">Ждём слова от гостей…</div>
+          <!-- Новый внутренний контейнер для масштабирования -->
+          <div id="cloudInner" class="cloud-inner">
+            <div class="cloud-empty">Ждём слова от гостей…</div>
+          </div>
         </div>
       </div>
 
@@ -74,6 +77,7 @@
     const statPeople    = document.getElementById('statPeople');
     const joinLink      = document.getElementById('joinLink');
     const pausedBadge   = document.getElementById('pausedBadge');
+    const cloudInner    = document.getElementById('cloudInner');
 
     let currentCode = null;
     let currentWords = [];
@@ -152,7 +156,6 @@
     });
 
     // === Обновлённая палитра и логика отрисовки ===
-       // === Палитра ===
     const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
 
     function renderCloud(words, participants, totalWords, locked) {
@@ -160,41 +163,59 @@
       statPeople.textContent = participants;
 
       if (!words || words.length === 0) {
-        cloudEl.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
+        cloudInner.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
+        cloudInner.style.transform = 'scale(1)';
         return;
       }
 
       const maxCount = Math.max(...words.map(w => w.count));
       const shuffled = words.slice().sort(() => Math.random() - 0.5);
 
-      cloudEl.innerHTML = '';
+      cloudInner.innerHTML = '';
       shuffled.forEach((item, i) => {
         const span = document.createElement('span');
         span.className = 'word';
         span.textContent = item.word;
 
         let size;
-
         if (maxCount === 1) {
-          // Если все слова по 1 разу — делаем их крупными и одинаковыми
           size = 56; 
         } else {
           const weight = (item.count - 1) / (maxCount - 1);
-          const eased = Math.pow(weight, 0.75); // Чуть плавнее
-          
-          // 36px — минимальный размер (для слов с 1 разом)
-          // 100px — максимальный размер (для самого частого)
+          const eased = Math.pow(weight, 0.75); 
           size = 36 + eased * 64; 
         }
 
         span.style.fontSize = size + 'px';
         span.style.color = COLORS[i % COLORS.length];
-        
-        // Убрали динамическую прозрачность, чтобы слова не исчезали.
-        // Если приём приостановлен — просто делаем все слова полупрозрачными.
         span.style.opacity = locked ? '0.5' : '1';
 
-        cloudEl.appendChild(span);
+        cloudInner.appendChild(span);
+      });
+
+      // === НОВАЯ ЛОГИКА УЖИМАНИЯ ===
+      // Ждём долю миллисекунды, чтобы браузер пересчитал размеры
+      requestAnimationFrame(() => {
+        const wrap = cloudEl.parentElement; // Блок .cloud-wrap
+        const innerWidth = cloudInner.offsetWidth;
+        const innerHeight = cloudInner.offsetHeight;
+        
+        // Отнимаем немного места на отступы
+        const availableWidth = wrap.offsetWidth - 20; 
+        const availableHeight = wrap.offsetHeight - 20;
+
+        let scale = 1;
+        
+        // Если контент шире или выше доступного места — вычисляем коэффициент
+        if (innerWidth > availableWidth || innerHeight > availableHeight) {
+          const scaleX = availableWidth / innerWidth;
+          const scaleY = availableHeight / innerHeight;
+          scale = Math.min(scaleX, scaleY); // Берем меньший коэффициент
+        }
+
+        // Применяем масштаб (не даем ему упасть ниже 0.3, чтобы не было нечитаемо)
+        const finalScale = Math.max(0.3, scale);
+        cloudInner.style.transform = `scale(${finalScale})`;
       });
     }
   </script>
