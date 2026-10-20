@@ -159,14 +159,16 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
 }
 
 .cloud-inner {
+  width: 100%;
+  /* Ограничиваем максимальную ширину, чтобы на широких экранах облако не превращалось в одну длинную строку */
+  max-width: 1200px; 
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
   align-content: center;
-  gap: 10px 20px;
+  gap: 10px 24px;
   padding: 10px;
-  /* Плавное изменение масштаба */
   transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: center center;
 }
