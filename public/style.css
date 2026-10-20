@@ -78,6 +78,38 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
 .btn-paused { background: var(--accent-teal); color: #063226; }
 .btn-paused:hover { background: #34c6b8; box-shadow: 0 8px 24px rgba(42, 179, 166, 0.4); }
 
+/* --- Кнопка "Скопировать ссылку" на сцене --- */
+.btn-copy {
+  margin-top: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 220px;
+  background: var(--accent-gold);
+  color: var(--bg-main);
+  font-weight: 800;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+.btn-copy:hover {
+  background: #ffc91f;
+  box-shadow: 0 4px 12px rgba(242, 183, 5, 0.4);
+}
+
+.btn-copy:active {
+  transform: scale(0.98);
+}
+
+.btn-copy.copied {
+  background: var(--accent-teal);
+  color: #063226;
+  box-shadow: 0 4px 12px rgba(42, 179, 166, 0.4);
+}
+
 /* ============ ЭКРАН НАСТРОЙКИ ============ */
 .setup-screen {
   position: fixed; inset: 0;
