@@ -107,12 +107,17 @@
       if (themeName && themeName !== 'default') document.body.classList.add(themeName);
     }
 
+    // СРАЗУ применяем сохраненную тему при загрузке пульта
+    const savedTheme = localStorage.getItem('malachite-theme') || 'default';
+    applyTheme(savedTheme);
+
     socket.on('themeUpdate', ({ code, theme }) => {
       if (code !== currentCode) return;
       applyTheme(theme);
+      localStorage.setItem('malachite-theme', theme);
     });
 
-    // === ОСТАЛЬНОЙ КОД ПУЛЬТА ===
+    // === ПУЛЬТ ===
     btnFocusStage.addEventListener('click', () => {
       if (window.opener && !window.opener.closed) window.opener.focus();
       else window.open('/', 'malachite-stage');
@@ -122,7 +127,11 @@
       const { code, words, participants, totalWords, uniqueWords, locked, limitPerGuest, theme } = data;
       if (!currentCode || code !== currentCode) return;
 
-      if (theme) applyTheme(theme);
+      if (theme) {
+        applyTheme(theme);
+        localStorage.setItem('malachite-theme', theme);
+      }
+
       currentWords = words || []; isLocked = !!locked; currentParticipants = participants || 0; currentLimit = limitPerGuest || 0;
       statWords.textContent = totalWords; statPeople.textContent = currentParticipants; statUnique.textContent = uniqueWords || currentWords.length;
       statLock.textContent = isLocked ? 'Пауза' : 'Активно'; statLock.classList.toggle('status-paused', isLocked);
