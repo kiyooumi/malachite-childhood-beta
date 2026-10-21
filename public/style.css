@@ -137,7 +137,7 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
   position: fixed; inset: 0;
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
-  background: radial-gradient(circle at 50% 0%, #1B6B4F 0%, #0F4D3A 60%);
+  background: var(--bg-main); 
   overflow: auto;
 }
 .setup-card {
