@@ -229,7 +229,6 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   font-weight: 800;
   line-height: 1;
   padding: 4px 8px;
-  /* Добавляем flex: 1 1 auto, чтобы слова заполняли пространство по ширине */
   flex: 1 1 auto; 
   text-align: center;
   animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -484,8 +483,10 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
 
 /* ============ ГОСТЕВАЯ СТРАНИЦА ============ */
 .guest-body {
-  min-height: 100vh; display: flex; flex-direction: column;
-  background: radial-gradient(circle at 50% 0%, #1B6B4F 0%, #0F4D3A 65%);
+  min-height: 100vh; 
+  display: flex; 
+  flex-direction: column;
+  background: var(--bg-main); 
   overflow: auto;
 }
 .guest-header {
