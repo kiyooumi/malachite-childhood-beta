@@ -18,8 +18,7 @@
       <h1 class="setup-title">Облако слов</h1>
       <p class="setup-subtitle">Задайте вопрос — гости ответят одним словом</p>
       <label class="label" for="questionInput">Вопрос аудитории</label>
-      <input id="questionInput" class="input" type="text"
-             placeholder="Например: Каким должно быть детство?" maxlength="200" />
+      <input id="questionInput" class="input" type="text" placeholder="Например: Каким должно быть детство?" maxlength="200" />
       <button id="createBtn" class="btn" type="button">Создать облако</button>
       <p class="setup-hint">После создания откроется сцена и пульт управления</p>
     </div>
@@ -27,13 +26,24 @@
 
   <section id="roomScreen" class="room-screen" hidden>
     <header class="room-header">
-      <div class="header-left">
-        <h2 id="questionBanner" class="question-text">—</h2>
-        <p class="header-hint">Наведи на QR-код и отправь сообщение</p>
-        <p class="stats-line">
-          <span id="statWords">0</span> слов ·
-          <span id="statPeople">0</span> участников
-        </p>
+      <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
+        <!-- Переключатель темы -->
+        <div class="theme-selector">
+          <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
+          <div id="themeMenu" class="theme-menu" hidden>
+            <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
+            <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
+            <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
+            <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
+          </div>
+        </div>
+        <div>
+          <h2 id="questionBanner" class="question-text">—</h2>
+          <p class="header-hint">Наведи на QR-код и отправь сообщение</p>
+          <p class="stats-line">
+            <span id="statWords">0</span> слов · <span id="statPeople">0</span> участников
+          </p>
+        </div>
       </div>
       <div class="header-right">
         <div class="join-label">КОД КОМНАТЫ</div>
@@ -42,224 +52,170 @@
     </header>
 
     <main class="cloud-area">
-            <div class="cloud-wrap">
+      <div class="cloud-wrap">
         <div id="cloud" class="cloud">
-          <!-- Новый внутренний контейнер для масштабирования -->
           <div id="cloudInner" class="cloud-inner">
             <div class="cloud-empty">Ждём слова от гостей…</div>
           </div>
         </div>
       </div>
-
-          <aside class="side-qr">
+      <aside class="side-qr">
         <div class="side-qr-title">ПРИСОЕДИНЯЙТЕСЬ</div>
         <div id="qrcode" class="qr-box"></div>
         <a id="joinLink" class="join-link" href="#" target="_blank" rel="noopener">—</a>
-        <!-- Новая кнопка -->
         <button id="copyBtn" class="btn btn-copy" type="button">Скопировать ссылку</button>
       </aside>
     </main>
-
     <div id="pausedBadge" class="paused-badge" hidden>⏸ Приём слов приостановлен</div>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-
-    const setupScreen   = document.getElementById('setupScreen');
-    const roomScreen    = document.getElementById('roomScreen');
+    const setupScreen = document.getElementById('setupScreen');
+    const roomScreen = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
-    const createBtn     = document.getElementById('createBtn');
+    const createBtn = document.getElementById('createBtn');
     const questionBanner = document.getElementById('questionBanner');
-    const codeValue     = document.getElementById('codeValue');
-    const qrcodeEl      = document.getElementById('qrcode');
-    const cloudEl       = document.getElementById('cloud');
-    const statWords     = document.getElementById('statWords');
-    const statPeople    = document.getElementById('statPeople');
-    const joinLink      = document.getElementById('joinLink');
-    const copyBtn       = document.getElementById('copyBtn'); // Новая строка
-    const pausedBadge   = document.getElementById('pausedBadge');
-    const cloudInner    = document.getElementById('cloudInner');
+    const codeValue = document.getElementById('codeValue');
+    const qrcodeEl = document.getElementById('qrcode');
+    const cloudEl = document.getElementById('cloud');
+    const cloudInner = document.getElementById('cloudInner');
+    const statWords = document.getElementById('statWords');
+    const statPeople = document.getElementById('statPeople');
+    const joinLink = document.getElementById('joinLink');
+    const copyBtn = document.getElementById('copyBtn');
+    const pausedBadge = document.getElementById('pausedBadge');
 
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
     let hasFirstWord = false;
 
-    createBtn.addEventListener('click', () => {
-      const q = questionInput.value.trim();
-      if (!q) { questionInput.focus(); return; }
-      socket.emit('createCloud', q);
-    });
-    questionInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') createBtn.click();
-    });
+    // === ПЕРЕКЛЮЧАТЕЛЬ ТЕМ ===
+    const themeBtn = document.getElementById('themeBtn');
+    const themeMenu = document.getElementById('themeMenu');
+    const themeOptions = document.querySelectorAll('.theme-option');
 
-    socket.on('cloudCreated', ({ code, question }) => {
-      currentCode = code;
-      currentWords = [];
-      hasFirstWord = false;
-      isLocked = false;
-      document.body.classList.add('state-waiting');
-      document.body.classList.remove('state-cloud');
-
-      setupScreen.hidden = true;
-      roomScreen.hidden = false;
-
-      questionBanner.textContent = question;
-      codeValue.textContent = code;
-
-      const guestUrl = window.location.origin + '/guest?code=' + code;
-      joinLink.textContent = guestUrl;
-      joinLink.href = guestUrl;
-
-      qrcodeEl.innerHTML = '';
-      new QRCode(qrcodeEl, {
-        text: guestUrl, width: 220, height: 220,
-        colorDark: '#0F4D3A', colorLight: '#FFFFFF',
-        correctLevel: QRCode.CorrectLevel.H
-      });
-
-      renderCloud([], 0, 0, false);
-      openControlWindow(code);
-    });
-
-    function openControlWindow(code) {
-      const url = '/control.html?code=' + encodeURIComponent(code);
-      const win = window.open(url, 'malachite-control', 'popup=yes,width=520,height=900');
-      if (!win) console.warn('Пульт не открылся: разрешите всплывающие окна.');
+    function applyTheme(themeName) {
+      document.body.classList.remove('theme-red', 'theme-blue', 'theme-gray');
+      if (themeName && themeName !== 'default') document.body.classList.add(themeName);
     }
 
-    socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
-      if (!currentCode || code !== currentCode) return;
-      currentWords = words || [];
-      isLocked = !!locked;
-      pausedBadge.hidden = !isLocked;
+    themeBtn.addEventListener('click', (e) => { e.stopPropagation(); themeMenu.hidden = !themeMenu.hidden; });
+    document.addEventListener('click', () => { themeMenu.hidden = true; });
 
-      renderCloud(currentWords, participants || 0, totalWords || 0, isLocked);
-
-      const nowHasWord = currentWords.length > 0;
-      if (nowHasWord && !hasFirstWord) {
-        hasFirstWord = true;
-        document.body.classList.remove('state-waiting');
-        document.body.classList.add('state-cloud');
-      }
-      if (!nowHasWord && hasFirstWord) {
-        hasFirstWord = false;
-        document.body.classList.remove('state-cloud');
-        document.body.classList.add('state-waiting');
-      }
+    themeOptions.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        applyTheme(theme);
+        if (currentCode) socket.emit('hostChangeTheme', { code: currentCode, theme: theme });
+        themeMenu.hidden = true;
+      });
     });
 
-    socket.on('hostState', ({ code, locked }) => {
+    socket.on('themeUpdate', ({ code, theme }) => {
       if (code !== currentCode) return;
-      isLocked = !!locked;
-      pausedBadge.hidden = !isLocked;
+      applyTheme(theme);
     });
 
-    // === Обновлённая палитра и логика отрисовки ===
-    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
-
-    function renderCloud(words, participants, totalWords, locked) {
-      statWords.textContent = totalWords;
-      statPeople.textContent = participants;
-
-      if (!words || words.length === 0) {
-        cloudInner.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
-        cloudInner.style.transform = 'scale(1)';
-        return;
-      }
-
-      const maxCount = Math.max(...words.map(w => w.count));
-      const shuffled = words.slice().sort(() => Math.random() - 0.5);
-
-      cloudInner.innerHTML = '';
-      shuffled.forEach((item, i) => {
-        const span = document.createElement('span');
-        span.className = 'word';
-        span.textContent = item.word;
-
-        let size;
-        if (maxCount === 1) {
-          size = 56; 
-        } else {
-          const weight = (item.count - 1) / (maxCount - 1);
-          const eased = Math.pow(weight, 0.75); 
-          size = 36 + eased * 64; 
-        }
-
-        span.style.fontSize = size + 'px';
-        span.style.color = COLORS[i % COLORS.length];
-        span.style.opacity = locked ? '0.5' : '1';
-
-        cloudInner.appendChild(span);
-      });
-
-      // === ЛОГИКА УЖИМАНИЯ (остается без изменений) ===
-      requestAnimationFrame(() => {
-        const wrap = cloudEl.parentElement; 
-        const innerWidth = cloudInner.offsetWidth;
-        const innerHeight = cloudInner.offsetHeight;
-        
-        const availableWidth = wrap.offsetWidth - 20; 
-        const availableHeight = wrap.offsetHeight - 20;
-
-        let scale = 1;
-        
-        if (innerWidth > availableWidth || innerHeight > availableHeight) {
-          const scaleX = availableWidth / innerWidth;
-          const scaleY = availableHeight / innerHeight;
-          scale = Math.min(scaleX, scaleY); 
-        }
-
-        const finalScale = Math.max(0.3, scale);
-        cloudInner.style.transform = `scale(${finalScale})`;
-      });
-    }
-        // === Логика копирования ссылки ===
+    // === КОПИРОВАНИЕ ССЫЛКИ ===
     function copyToClipboard(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text);
-      }
-      // Fallback для http:// и старых браузеров
+      if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
       return new Promise((resolve, reject) => {
         try {
           const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.setAttribute('readonly', '');
-          ta.style.position = 'fixed';
-          ta.style.top = '-1000px';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          ta.setSelectionRange(0, ta.value.length);
-          const ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-          ok ? resolve() : reject(new Error('execCommand copy failed'));
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          const ok = document.execCommand('copy'); document.body.removeChild(ta);
+          ok ? resolve() : reject();
         } catch (err) { reject(err); }
       });
     }
 
     copyBtn.addEventListener('click', () => {
-      const url = joinLink.href;
-      if (!url || url === '#' || url === window.location.href + '#') return;
-
-      copyToClipboard(url)
-        .then(() => {
-          const originalText = copyBtn.textContent;
-          copyBtn.textContent = '✓ Скопировано!';
-          copyBtn.classList.add('copied');
-          setTimeout(() => {
-            copyBtn.textContent = originalText;
-            copyBtn.classList.remove('copied');
-          }, 2000);
-        })
-        .catch(() => {
-          copyBtn.textContent = 'Ошибка :(';
-          setTimeout(() => { copyBtn.textContent = 'Скопировать ссылку'; }, 2000);
-        });
+      if (!joinLink.href || joinLink.href === '#') return;
+      copyToClipboard(joinLink.href).then(() => {
+        const old = copyBtn.textContent;
+        copyBtn.textContent = '✓ Скопировано!'; copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = old; copyBtn.classList.remove('copied'); }, 2000);
+      }).catch(() => alert('Не удалось скопировать'));
     });
+
+    // === ЛОГИКА СЦЕНЫ ===
+    createBtn.addEventListener('click', () => {
+      const q = questionInput.value.trim();
+      if (!q) { questionInput.focus(); return; }
+      socket.emit('createCloud', q);
+    });
+    questionInput.addEventListener('keydown', e => { if (e.key === 'Enter') createBtn.click(); });
+
+    socket.on('cloudCreated', ({ code, question, theme }) => {
+      currentCode = code; currentWords = []; hasFirstWord = false; isLocked = false;
+      applyTheme(theme);
+      document.body.classList.add('state-waiting'); document.body.classList.remove('state-cloud');
+      setupScreen.hidden = true; roomScreen.hidden = false;
+      questionBanner.textContent = question; codeValue.textContent = code;
+      
+      const guestUrl = window.location.origin + '/guest?code=' + code;
+      joinLink.textContent = guestUrl; joinLink.href = guestUrl;
+      qrcodeEl.innerHTML = '';
+      new QRCode(qrcodeEl, { text: guestUrl, width: 220, height: 220, colorDark: '#0F4D3A', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
+      
+      renderCloud([], 0, 0, false);
+      window.open('/control.html?code=' + code, 'malachite-control', 'popup=yes,width=520,height=900');
+    });
+
+    socket.on('cloudUpdate', ({ code, words, participants, totalWords, locked }) => {
+      if (!currentCode || code !== currentCode) return;
+      currentWords = words || []; isLocked = !!locked; pausedBadge.hidden = !isLocked;
+      renderCloud(currentWords, participants || 0, totalWords || 0, isLocked);
+      
+      const nowHasWord = currentWords.length > 0;
+      if (nowHasWord && !hasFirstWord) { hasFirstWord = true; document.body.classList.remove('state-waiting'); document.body.classList.add('state-cloud'); }
+      if (!nowHasWord && hasFirstWord) { hasFirstWord = false; document.body.classList.remove('state-cloud'); document.body.classList.add('state-waiting'); }
+    });
+
+    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
+
+    function renderCloud(words, participants, totalWords, locked) {
+      statWords.textContent = totalWords; statPeople.textContent = participants;
+      if (!words || words.length === 0) {
+        cloudInner.innerHTML = '<div class="cloud-empty">Ждём слова от гостей…</div>';
+        cloudInner.style.transform = 'scale(1)'; return;
+      }
+      const maxCount = Math.max(...words.map(w => w.count));
+      const shuffled = words.slice().sort(() => Math.random() - 0.5);
+      cloudInner.innerHTML = '';
+      
+      shuffled.forEach((item, i) => {
+        const span = document.createElement('span');
+        span.className = 'word'; span.textContent = item.word;
+        let size;
+        if (maxCount === 1) { size = 56; } 
+        else {
+          const weight = (item.count - 1) / (maxCount - 1);
+          size = 36 + Math.pow(weight, 0.75) * 64;
+        }
+        span.style.fontSize = size + 'px';
+        span.style.color = COLORS[i % COLORS.length];
+        span.style.opacity = locked ? '0.5' : '1';
+        cloudInner.appendChild(span);
+      });
+
+      requestAnimationFrame(() => {
+        const wrap = cloudEl.parentElement;
+        const innerWidth = cloudInner.offsetWidth;
+        const innerHeight = cloudInner.offsetHeight;
+        const availableWidth = wrap.offsetWidth - 20;
+        const availableHeight = wrap.offsetHeight - 20;
+        let scale = 1;
+        if (innerWidth > availableWidth || innerHeight > availableHeight) {
+          scale = Math.min(availableWidth / innerWidth, availableHeight / innerHeight);
+        }
+        cloudInner.style.transform = `scale(${Math.max(0.3, scale)})`;
+      });
+    }
   </script>
 </body>
 </html>
