@@ -10,16 +10,13 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body class="control-body">
-
   <header class="control-header">
-    <div class="control-title">
-      <span class="dot-live"></span> Пульт ведущего
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <div class="control-title"><span class="dot-live"></span> Пульт</div>
     </div>
     <div class="control-meta">
       <span>Код: <b id="codeLabel">------</b></span>
-      <button id="btnFocusStage" class="btn btn-small btn-ghost" type="button" title="Переключиться на окно сцены">
-        К сцене
-      </button>
+      <button id="btnFocusStage" class="btn btn-small btn-ghost" type="button">К сцене</button>
     </div>
   </header>
 
@@ -32,13 +29,8 @@
 
   <section class="control-actions">
     <button id="btnLock" class="btn btn-block" type="button">⏸ Приостановить приём</button>
-
-    <!-- Лимит слов на гостя -->
     <div class="limit-box">
-      <div class="limit-head">
-        <span class="limit-title">Лимит слов на гостя</span>
-        <span id="limitSummary" class="limit-summary">Без лимита</span>
-      </div>
+      <div class="limit-head"><span class="limit-title">Лимит слов на гостя</span><span id="limitSummary" class="limit-summary">Без лимита</span></div>
       <div class="limit-row">
         <input id="limitInput" class="input input-limit" type="number" min="0" max="100" value="0" />
         <button id="btnApplyLimit" class="btn" type="button">Применить</button>
@@ -51,13 +43,10 @@
         <button class="chip" data-limit="0" type="button">Без лимита</button>
       </div>
     </div>
-
     <div class="manual-add">
-      <input id="manualInput" class="input" type="text"
-             placeholder="Добавить слово вручную" maxlength="30" />
+      <input id="manualInput" class="input" type="text" placeholder="Добавить слово вручную" maxlength="30" />
       <button id="btnManualAdd" class="btn" type="button">Добавить</button>
     </div>
-
     <div class="btn-row">
       <button id="btnTop3" class="btn btn-small" type="button">Топ-3</button>
       <button id="btnCsv" class="btn btn-small" type="button">CSV</button>
@@ -66,16 +55,10 @@
   </section>
 
   <section class="words-panel">
-    <div class="words-head">
-      <h3>Слова на сцене</h3>
-      <span class="words-hint">Клик по слову — удалить. Кнопка «−» — уменьшить счётчик на 1.</span>
-    </div>
-    <div id="wordsList" class="words-list">
-      <div class="words-empty">Пока нет слов</div>
-    </div>
+    <div class="words-head"><h3>Слова на сцене</h3><span class="words-hint">Клик — удалить. «−» — счётчик на 1.</span></div>
+    <div id="wordsList" class="words-list"><div class="words-empty">Пока нет слов</div></div>
   </section>
 
-  <!-- Модалка Топ-3 -->
   <div id="topOverlay" class="overlay" hidden>
     <div class="overlay-inner">
       <div class="overlay-title">Топ-3 слова</div>
@@ -87,254 +70,119 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-
     const params = new URLSearchParams(window.location.search);
     let currentCode = (params.get('code') || '').trim() || null;
 
-    const codeLabel    = document.getElementById('codeLabel');
-    const statWords    = document.getElementById('statWords');
-    const statPeople   = document.getElementById('statPeople');
-    const statUnique   = document.getElementById('statUnique');
-    const statLock     = document.getElementById('statLock');
-    const btnLock      = document.getElementById('btnLock');
-    const manualInput  = document.getElementById('manualInput');
+    const codeLabel = document.getElementById('codeLabel');
+    const statWords = document.getElementById('statWords');
+    const statPeople = document.getElementById('statPeople');
+    const statUnique = document.getElementById('statUnique');
+    const statLock = document.getElementById('statLock');
+    const btnLock = document.getElementById('btnLock');
+    const manualInput = document.getElementById('manualInput');
     const btnManualAdd = document.getElementById('btnManualAdd');
-    const btnTop3      = document.getElementById('btnTop3');
-    const btnCsv       = document.getElementById('btnCsv');
-    const btnClear     = document.getElementById('btnClear');
-    const wordsList    = document.getElementById('wordsList');
+    const btnTop3 = document.getElementById('btnTop3');
+    const btnCsv = document.getElementById('btnCsv');
+    const btnClear = document.getElementById('btnClear');
+    const wordsList = document.getElementById('wordsList');
     const btnFocusStage = document.getElementById('btnFocusStage');
-    const btnCloseTop  = document.getElementById('btnCloseTop');
-    const topOverlay   = document.getElementById('topOverlay');
-    const topList      = document.getElementById('topList');
-
-    const limitInput     = document.getElementById('limitInput');
-    const btnApplyLimit  = document.getElementById('btnApplyLimit');
-    const limitSummary   = document.getElementById('limitSummary');
-    const presetChips    = document.querySelectorAll('.chip[data-limit]');
+    const btnCloseTop = document.getElementById('btnCloseTop');
+    const topOverlay = document.getElementById('topOverlay');
+    const topList = document.getElementById('topList');
+    const limitInput = document.getElementById('limitInput');
+    const btnApplyLimit = document.getElementById('btnApplyLimit');
+    const limitSummary = document.getElementById('limitSummary');
+    const presetChips = document.querySelectorAll('.chip[data-limit]');
 
     let currentWords = [];
     let isLocked = false;
     let currentParticipants = 0;
-    let currentTotalWords = 0;
     let currentLimit = 0;
 
     if (currentCode) codeLabel.textContent = currentCode;
 
+    // === СИНХРОНИЗАЦИЯ ТЕМЫ ===
+    function applyTheme(themeName) {
+      document.body.classList.remove('theme-red', 'theme-blue', 'theme-gray');
+      if (themeName && themeName !== 'default') document.body.classList.add(themeName);
+    }
+
+    socket.on('themeUpdate', ({ code, theme }) => {
+      if (code !== currentCode) return;
+      applyTheme(theme);
+    });
+
+    // === ОСТАЛЬНОЙ КОД ПУЛЬТА ===
     btnFocusStage.addEventListener('click', () => {
       if (window.opener && !window.opener.closed) window.opener.focus();
       else window.open('/', 'malachite-stage');
     });
 
-    socket.on('cloudCreated', ({ code }) => {
-      if (!currentCode) {
-        currentCode = code;
-        codeLabel.textContent = code;
-      }
-    });
-
     socket.on('cloudUpdate', (data) => {
-      const { code, words, participants, totalWords, uniqueWords, locked, limitPerGuest } = data;
+      const { code, words, participants, totalWords, uniqueWords, locked, limitPerGuest, theme } = data;
       if (!currentCode || code !== currentCode) return;
 
-      currentWords = words || [];
-      isLocked = !!locked;
-      currentParticipants = participants || 0;
-      currentTotalWords = totalWords || 0;
-      currentLimit = limitPerGuest || 0;
+      if (theme) applyTheme(theme);
+      currentWords = words || []; isLocked = !!locked; currentParticipants = participants || 0; currentLimit = limitPerGuest || 0;
+      statWords.textContent = totalWords; statPeople.textContent = currentParticipants; statUnique.textContent = uniqueWords || currentWords.length;
+      statLock.textContent = isLocked ? 'Пауза' : 'Активно'; statLock.classList.toggle('status-paused', isLocked);
+      btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём'; btnLock.classList.toggle('btn-paused', isLocked);
 
-      statWords.textContent = currentTotalWords;
-      statPeople.textContent = currentParticipants;
-      statUnique.textContent = uniqueWords || currentWords.length;
-      statLock.textContent = isLocked ? 'Пауза' : 'Активно';
-      statLock.classList.toggle('status-paused', isLocked);
-
-      btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём';
-      btnLock.classList.toggle('btn-paused', isLocked);
-
-      // Синхронизируем поле лимита, если ведущий не редактирует прямо сейчас
-      if (document.activeElement !== limitInput) {
-        limitInput.value = currentLimit;
-      }
+      if (document.activeElement !== limitInput) limitInput.value = currentLimit;
       updateLimitSummary();
-
       renderWordsList();
     });
 
-    socket.on('hostState', ({ code, locked }) => {
-      if (code !== currentCode) return;
-      isLocked = !!locked;
-      statLock.textContent = isLocked ? 'Пауза' : 'Активно';
-      statLock.classList.toggle('status-paused', isLocked);
-      btnLock.textContent = isLocked ? '▶ Возобновить приём' : '⏸ Приостановить приём';
-      btnLock.classList.toggle('btn-paused', isLocked);
-    });
-
-    socket.on('errorMessage', ({ message }) => {
-      const el = document.createElement('div');
-      el.className = 'toast';
-      el.textContent = message;
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 2200);
-    });
-
-    // ====== Лимит ======
     function updateLimitSummary() {
-      if (currentLimit > 0) {
-        const max = currentParticipants * currentLimit;
-        limitSummary.textContent =
-          `${currentParticipants} гостей × ${currentLimit} = до ${max} слов`;
-      } else {
-        limitSummary.textContent = 'Без лимита';
-      }
+      if (currentLimit > 0) limitSummary.textContent = `${currentParticipants} гостей × ${currentLimit} = до ${currentParticipants * currentLimit} слов`;
+      else limitSummary.textContent = 'Без лимита';
     }
 
-    function applyLimit(value) {
-      if (!currentCode) return;
-      socket.emit('hostSetLimit', { code: currentCode, limit: value });
-    }
+    function applyLimit(value) { if (currentCode) socket.emit('hostSetLimit', { code: currentCode, limit: value }); }
+    btnApplyLimit.addEventListener('click', () => applyLimit(parseInt(limitInput.value, 10) || 0));
+    presetChips.forEach(chip => chip.addEventListener('click', () => { const v = parseInt(chip.dataset.limit, 10) || 0; limitInput.value = v; applyLimit(v); }));
 
-    btnApplyLimit.addEventListener('click', () => {
-      applyLimit(parseInt(limitInput.value, 10) || 0);
-    });
-    limitInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') btnApplyLimit.click();
-    });
-    presetChips.forEach(chip => {
-      chip.addEventListener('click', () => {
-        const v = parseInt(chip.dataset.limit, 10) || 0;
-        limitInput.value = v;
-        applyLimit(v);
-      });
-    });
-
-    // ====== Список слов ======
     function renderWordsList() {
-      if (!currentWords || currentWords.length === 0) {
-        wordsList.innerHTML = '<div class="words-empty">Пока нет слов</div>';
-        return;
-      }
+      if (!currentWords || currentWords.length === 0) { wordsList.innerHTML = '<div class="words-empty">Пока нет слов</div>'; return; }
       const sorted = currentWords.slice().sort((a, b) => b.count - a.count);
       wordsList.innerHTML = '';
-
       sorted.forEach(item => {
-        const row = document.createElement('div');
-        row.className = 'word-row';
-
-        const wordEl = document.createElement('span');
-        wordEl.className = 'word-name';
-        wordEl.textContent = item.word;
-
-        const countEl = document.createElement('span');
-        countEl.className = 'word-count';
-        countEl.textContent = '×' + item.count;
-
-        const minusBtn = document.createElement('button');
-        minusBtn.className = 'icon-btn icon-minus';
-        minusBtn.type = 'button';
-        minusBtn.title = 'Уменьшить счётчик на 1';
-        minusBtn.innerHTML = '−';
-
-        const delBtn = document.createElement('button');
-        delBtn.className = 'icon-btn icon-del';
-        delBtn.type = 'button';
-        delBtn.title = 'Удалить слово';
-        delBtn.innerHTML = '✕';
-
-        delBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (!currentCode) return;
-          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
-        });
-        minusBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (!currentCode) return;
-          socket.emit('hostDecrementWord', { code: currentCode, word: item.word });
-        });
-        row.addEventListener('click', () => {
-          if (!currentCode) return;
-          socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
-        });
-
-        row.appendChild(wordEl);
-        row.appendChild(countEl);
-        row.appendChild(minusBtn);
-        row.appendChild(delBtn);
+        const row = document.createElement('div'); row.className = 'word-row';
+        row.innerHTML = `<span class="word-name">${item.word}</span><span class="word-count">×${item.count}</span>`;
+        
+        const minusBtn = document.createElement('button'); minusBtn.className = 'icon-btn icon-minus'; minusBtn.textContent = '−';
+        minusBtn.onclick = (e) => { e.stopPropagation(); socket.emit('hostDecrementWord', { code: currentCode, word: item.word }); };
+        
+        const delBtn = document.createElement('button'); delBtn.className = 'icon-btn icon-del'; delBtn.textContent = '✕';
+        delBtn.onclick = (e) => { e.stopPropagation(); socket.emit('hostRemoveWord', { code: currentCode, word: item.word }); };
+        
+        row.appendChild(minusBtn); row.appendChild(delBtn);
+        row.onclick = () => socket.emit('hostRemoveWord', { code: currentCode, word: item.word });
         wordsList.appendChild(row);
       });
     }
 
-    // ====== Действия ======
-    btnLock.addEventListener('click', () => {
-      if (!currentCode) return;
-      socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked });
-    });
-
-    btnManualAdd.addEventListener('click', () => {
-      const w = manualInput.value.trim();
-      if (!w || !currentCode) return;
-      socket.emit('hostAddWord', { code: currentCode, word: w });
-      manualInput.value = '';
-      manualInput.focus();
-    });
-    manualInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') btnManualAdd.click();
-    });
+    btnLock.addEventListener('click', () => socket.emit('hostToggleLock', { code: currentCode, locked: !isLocked }));
+    btnManualAdd.addEventListener('click', () => { const w = manualInput.value.trim(); if (w && currentCode) { socket.emit('hostAddWord', { code: currentCode, word: w }); manualInput.value = ''; manualInput.focus(); } });
+    manualInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnManualAdd.click(); });
 
     btnTop3.addEventListener('click', () => {
       const top = currentWords.slice().sort((a, b) => b.count - a.count).slice(0, 3);
-      topList.innerHTML = '';
-      if (top.length === 0) {
-        topList.innerHTML = '<li class="top-empty">Пока нет слов</li>';
-      } else {
-        top.forEach((item, i) => {
-          const li = document.createElement('li');
-          li.innerHTML = `<span class="top-rank">${i + 1}</span>
-                          <span class="top-word">${escapeHtml(item.word)}</span>
-                          <span class="top-count">×${item.count}</span>`;
-          topList.appendChild(li);
-        });
-      }
+      topList.innerHTML = top.length === 0 ? '<li class="top-empty">Пока нет слов</li>' : top.map((item, i) => `<li><span class="top-rank">${i + 1}</span><span class="top-word">${item.word}</span><span class="top-count">×${item.count}</span></li>`).join('');
       topOverlay.hidden = false;
     });
-    btnCloseTop.addEventListener('click', () => { topOverlay.hidden = true; });
-    topOverlay.addEventListener('click', (e) => {
-      if (e.target === topOverlay) topOverlay.hidden = true;
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') topOverlay.hidden = true;
-    });
+    btnCloseTop.addEventListener('click', () => topOverlay.hidden = true);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') topOverlay.hidden = true; });
 
     btnCsv.addEventListener('click', () => {
       if (currentWords.length === 0) return;
-      const rows = [['Слово', 'Количество']];
-      currentWords.slice().sort((a, b) => b.count - a.count)
-        .forEach(w => rows.push([w.word, w.count]));
-      const csv = rows.map(r =>
-        r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      ).join('\r\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cloud-${currentCode || 'room'}-${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const rows = [['Слово', 'Количество'], ...currentWords.map(w => [w.word, w.count])];
+      const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }));
+      a.download = `cloud-${currentCode}.csv`; a.click();
     });
 
-    btnClear.addEventListener('click', () => {
-      if (!currentCode) return;
-      if (!confirm('Очистить все слова, участников и счётчики?')) return;
-      socket.emit('hostClear', { code: currentCode });
-    });
-
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
+    btnClear.addEventListener('click', () => { if (currentCode && confirm('Очистить всё?')) socket.emit('hostClear', { code: currentCode }); });
   </script>
 </body>
 </html>
