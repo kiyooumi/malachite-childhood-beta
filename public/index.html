@@ -12,8 +12,21 @@
 </head>
 <body class="state-waiting">
 
+  <!-- ЭКРАН НАСТРОЙКИ -->
   <section id="setupScreen" class="setup-screen">
-    <div class="setup-card">
+    <div class="setup-card" style="position: relative;">
+      
+      <!-- ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ (теперь здесь) -->
+      <div class="theme-selector" style="position: absolute; top: 20px; right: 20px;">
+        <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
+        <div id="themeMenu" class="theme-menu" hidden style="left: auto; right: 0;">
+          <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
+          <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
+          <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
+          <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
+        </div>
+      </div>
+
       <img src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
       <h1 class="setup-title">Облако слов</h1>
       <p class="setup-subtitle">Задайте вопрос — гости ответят одним словом</p>
@@ -24,26 +37,15 @@
     </div>
   </section>
 
+  <!-- ЭКРАН КОМНАТЫ (СЦЕНА) -->
   <section id="roomScreen" class="room-screen" hidden>
     <header class="room-header">
-      <div class="header-left" style="display: flex; align-items: center; gap: 16px;">
-        <!-- Переключатель темы -->
-        <div class="theme-selector">
-          <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
-          <div id="themeMenu" class="theme-menu" hidden>
-            <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
-            <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
-            <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
-            <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
-          </div>
-        </div>
-        <div>
-          <h2 id="questionBanner" class="question-text">—</h2>
-          <p class="header-hint">Наведи на QR-код и отправь сообщение</p>
-          <p class="stats-line">
-            <span id="statWords">0</span> слов · <span id="statPeople">0</span> участников
-          </p>
-        </div>
+      <div class="header-left">
+        <h2 id="questionBanner" class="question-text">—</h2>
+        <p class="header-hint">Наведи на QR-код и отправь сообщение</p>
+        <p class="stats-line">
+          <span id="statWords">0</span> слов · <span id="statPeople">0</span> участников
+        </p>
       </div>
       <div class="header-right">
         <div class="join-label">КОД КОМНАТЫ</div>
@@ -91,6 +93,9 @@
     let currentWords = [];
     let isLocked = false;
     let hasFirstWord = false;
+    
+    // Текущая выбранная тема (по умолчанию)
+    let selectedTheme = 'default';
 
     // === ПЕРЕКЛЮЧАТЕЛЬ ТЕМ ===
     const themeBtn = document.getElementById('themeBtn');
@@ -107,9 +112,8 @@
 
     themeOptions.forEach(btn => {
       btn.addEventListener('click', () => {
-        const theme = btn.dataset.theme;
-        applyTheme(theme);
-        if (currentCode) socket.emit('hostChangeTheme', { code: currentCode, theme: theme });
+        selectedTheme = btn.dataset.theme;
+        applyTheme(selectedTheme);
         themeMenu.hidden = true;
       });
     });
@@ -146,13 +150,22 @@
     createBtn.addEventListener('click', () => {
       const q = questionInput.value.trim();
       if (!q) { questionInput.focus(); return; }
+      // Отправляем вопрос и выбранную тему
       socket.emit('createCloud', q);
     });
     questionInput.addEventListener('keydown', e => { if (e.key === 'Enter') createBtn.click(); });
 
     socket.on('cloudCreated', ({ code, question, theme }) => {
       currentCode = code; currentWords = []; hasFirstWord = false; isLocked = false;
-      applyTheme(theme);
+      
+      // Если сервер вернул дефолтную, но мы выбрали другую — сообщаем серверу
+      if (theme !== selectedTheme && currentCode) {
+        socket.emit('hostChangeTheme', { code: currentCode, theme: selectedTheme });
+        applyTheme(selectedTheme);
+      } else {
+        applyTheme(theme);
+      }
+
       document.body.classList.add('state-waiting'); document.body.classList.remove('state-cloud');
       setupScreen.hidden = true; roomScreen.hidden = false;
       questionBanner.textContent = question; codeValue.textContent = code;
