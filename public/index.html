@@ -114,6 +114,7 @@
       btn.addEventListener('click', () => {
         selectedTheme = btn.dataset.theme;
         applyTheme(selectedTheme);
+        localStorage.setItem('malachite-theme', selectedTheme);
         themeMenu.hidden = true;
       });
     });
