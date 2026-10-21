@@ -12,14 +12,16 @@
 </head>
 <body class="state-waiting">
 
-  <!-- ПЕРЕКЛЮЧАТЕЛЬ ТЕМЫ (в левом верхнем углу) -->
-  <div class="theme-selector" style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
-    <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
-    <div id="themeMenu" class="theme-menu" hidden>
-      <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
-      <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
-      <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
-      <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
+  <!-- КОНТЕЙНЕР ДЛЯ КНОПКИ ТЕМЫ (в левом верхнем углу экрана) -->
+  <div id="themeContainer" style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+    <div class="theme-selector">
+      <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
+      <div id="themeMenu" class="theme-menu" hidden>
+        <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
+        <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
+        <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
+        <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
+      </div>
     </div>
   </div>
 
@@ -73,6 +75,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
+    const themeContainer = document.getElementById('themeContainer'); // Контейнер кнопки
     const setupScreen = document.getElementById('setupScreen');
     const roomScreen = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
@@ -157,7 +160,14 @@
       }
 
       document.body.classList.add('state-waiting'); document.body.classList.remove('state-cloud');
-      setupScreen.hidden = true; roomScreen.hidden = false;
+      
+      // ПРЯЧЕМ ЭКРАН НАСТРОЙКИ И КНОПКУ ТЕМЫ
+      setupScreen.hidden = true; 
+      themeContainer.hidden = true; 
+      
+      // ПОКАЗЫВАЕМ СЦЕНУ
+      roomScreen.hidden = false;
+      
       questionBanner.textContent = question; codeValue.textContent = code;
       
       const guestUrl = window.location.origin + '/guest?code=' + code;
