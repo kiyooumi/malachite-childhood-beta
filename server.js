@@ -15,14 +15,6 @@ app.get('/guest', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'guest.html'));
 });
 
-// code -> {
-//   question,
-//   words: Map(word -> count),
-//   participants: Set(socketId),
-//   guestCounts: Map(socketId -> number),
-//   limitPerGuest: number,   // 0 = без лимита
-//   locked: bool
-// }
 const clouds = new Map();
 
 function generateCode() {
@@ -47,7 +39,8 @@ function stats(cloud) {
     limitPerGuest: cloud.limitPerGuest,
     maxTotalWords: cloud.limitPerGuest > 0
       ? cloud.participants.size * cloud.limitPerGuest
-      : null
+      : null,
+    theme: cloud.theme // <-- Отдаем текущую тему всем
   };
 }
 
@@ -86,14 +79,14 @@ function sendQuota(socket, code) {
   socket.emit('quotaUpdate', {
     code,
     used: guestUsed(cloud, socket.id),
-    limit: cloud.limitPerGuest
+    limit: cloud.limitPerGuest,
+    theme: cloud.theme // <-- Отдаем тему гостю при входе
   });
 }
 
 io.on('connection', (socket) => {
   console.log('Подключение:', socket.id);
 
-  // Ведущий создаёт облако
   socket.on('createCloud', (question) => {
     const q = String(question || '').trim() || 'Без вопроса';
     const code = generateCode();
@@ -103,15 +96,15 @@ io.on('connection', (socket) => {
       participants: new Set(),
       guestCounts: new Map(),
       limitPerGuest: 0,
-      locked: false
+      locked: false,
+      theme: 'default' // Тема по умолчанию
     });
     socket.data.role = 'host';
     socket.data.code = code;
     console.log(`Облако ${code}: "${q}"`);
-    socket.emit('cloudCreated', { code, question: q });
+    socket.emit('cloudCreated', { code, question: q, theme: 'default' });
   });
 
-  // Гость отправляет слово
   socket.on('submitWord', (payload) => {
     const code = String(payload?.code || '').trim();
     const rawWord = String(payload?.word || '').trim();
@@ -127,7 +120,6 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Проверка лимита
     const used = guestUsed(cloud, socket.id);
     if (cloud.limitPerGuest > 0 && used >= cloud.limitPerGuest) {
       socket.emit('errorMessage', {
@@ -153,7 +145,6 @@ io.on('connection', (socket) => {
     broadcastCloud(code);
   });
 
-  // Гость запрашивает свой прогресс (при загрузке страницы)
   socket.on('requestQuota', ({ code }) => {
     const c = String(code || '').trim();
     if (!c) return;
@@ -161,6 +152,14 @@ io.on('connection', (socket) => {
   });
 
   // ===== Пульт ведущего =====
+
+  // Ведущий меняет тему
+  socket.on('hostChangeTheme', ({ code, theme }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    cloud.theme = theme || 'default';
+    io.emit('themeUpdate', { code, theme: cloud.theme }); // Рассылаем всем
+  });
 
   socket.on('hostToggleLock', ({ code, locked }) => {
     const cloud = clouds.get(code);
@@ -178,7 +177,6 @@ io.on('connection', (socket) => {
     if (n > 100) n = 100;
     cloud.limitPerGuest = n;
     broadcastCloud(code);
-    // Каждому гостю в этой комнате обновляем квоту
     for (const [id, s] of io.of('/').sockets) {
       if (s.data && s.data.code === code && s.data.role === 'guest') {
         sendQuota(s, code);
@@ -226,7 +224,6 @@ io.on('connection', (socket) => {
     cloud.participants.clear();
     cloud.guestCounts.clear();
     broadcastCloud(code);
-    // Обнуляем квоты у всех гостей комнаты
     for (const [id, s] of io.of('/').sockets) {
       if (s.data && s.data.code === code && s.data.role === 'guest') {
         sendQuota(s, code);
@@ -238,9 +235,6 @@ io.on('connection', (socket) => {
     for (const [code, cloud] of clouds.entries()) {
       if (cloud.participants.has(socket.id)) {
         cloud.participants.delete(socket.id);
-        // НЕ удаляем guestCounts — если гость переподключится с тем же socket.id
-        // (маловероятно), или чтобы счётчик не «сбрасывался» в течение сессии.
-        // Но participants уменьшится, значит maxTotalWords в stats пересчитается.
         broadcastCloud(code);
       }
     }
