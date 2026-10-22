@@ -1,12 +1,12 @@
 :root {
-  --bg-main: #0F4D3A;
-  --bg-secondary: #1B6B4F;
-  --accent-teal: #2AB3A6;
-  --accent-gold: #F2B705;
-  --accent-orange: #E8A55A;
-  --accent-danger: #B23A3A;
-  --text-white: #FFFFFF;
-  --text-light: #C7E6DC;
+  --bg-main: #D1EDED;
+  --bg-secondary: #FFFFFF;
+  --accent-teal: #91D0B8;
+  --accent-gold: #FFC219;
+  --accent-orange: #40BF60;
+  --accent-danger: #E33D3D;
+  --text-white: #004D3D;
+  --text-light: #1C8670;
 }
 
 body.theme-red { 
