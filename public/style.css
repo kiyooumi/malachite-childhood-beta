@@ -325,7 +325,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
 }
 .stat {
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(42, 179, 166, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
   padding: 12px 8px; text-align: center;
 }
