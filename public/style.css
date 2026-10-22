@@ -28,7 +28,7 @@ body.theme-gray {
   --bg-secondary: #FFFFFF;
   --accent-teal: #C73D23;
   --accent-orange: #FFA843;
-  --text-light: #F7F7F7;
+  --text-light: #7F7F7F;
 }
 
 * { box-sizing: border-box; }
