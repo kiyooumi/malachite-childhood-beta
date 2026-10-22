@@ -36,6 +36,10 @@ body.theme-gray {
 
 html, body {
   margin: 0; padding: 0; height: 100%;
+  background-image: url('/background.png');
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
   background: var(--bg-main);
   color: var(--text-white);
   font-family: 'Montserrat', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
