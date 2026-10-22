@@ -174,7 +174,7 @@
       const guestUrl = window.location.origin + '/guest?code=' + code;
       joinLink.textContent = guestUrl; joinLink.href = guestUrl;
       qrcodeEl.innerHTML = '';
-      new QRCode(qrcodeEl, { text: guestUrl, width: 220, height: 220, colorDark: '#0F4D3A', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
+      new QRCode(qrcodeEl, { text: guestUrl, width: 220, height: 220, colorDark: '#0F0F0F', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
       
       renderCloud([], 0, 0, false);
       window.open('/control.html?code=' + code, 'malachite-control', 'popup=yes,width=520,height=900');
