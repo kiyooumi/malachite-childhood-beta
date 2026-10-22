@@ -14,6 +14,7 @@ body.theme-red {
   --bg-secondary: #FFFFFF; 
   --accent-teal: #FFA843;
   --accent-orange: #F06B0A;
+  --text-white: #FFA843;
   --text-light: #E6A5A1;
 }
 body.theme-blue {
@@ -21,6 +22,7 @@ body.theme-blue {
   --bg-secondary: #FFFFFF;
   --accent-teal: #A4BFDD;
   --accent-orange: #A4BFDD;
+  --text-white: #A4BFDD;
   --text-light: #99D9EA;
 }
 body.theme-gray {
@@ -28,6 +30,7 @@ body.theme-gray {
   --bg-secondary: #FFFFFF;
   --accent-teal: #C73D23;
   --accent-orange: #FFA843;
+  --text-white: #C73D23;
   --text-light: #7F7F7F;
 }
 
@@ -61,7 +64,7 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.input::placeholder { color: rgba(199, 230, 220, 0.6); }
+.input::placeholder { color: rgba(201, 201, 201, 0.8); }
 .input:focus { border-color: var(--accent-gold); box-shadow: 0 0 0 4px rgba(242, 183, 5, 0.2); }
 .input-small { padding: 10px; font-size: 14px; }
 
@@ -150,7 +153,7 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
   text-align: center;
 }
 .setup-logo { height: 64px; margin: 0 auto 8px; object-fit: contain; max-width: 80%; }
-.setup-title { margin: 0; font-size: 34px; font-weight: 900; }
+.setup-title { margin: 0; color: var(--text-white); font-size: 34px; font-weight: 900; }
 .setup-subtitle { margin: 0 0 20px; color: var(--text-light); font-size: 15px; }
 .setup-hint { margin: 10px 0 0; color: var(--text-light); font-size: 13px; opacity: 0.7; }
 
