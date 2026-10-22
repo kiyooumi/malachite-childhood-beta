@@ -109,7 +109,7 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
   width: 100%;
   max-width: 220px;
   background: var(--accent-gold);
-  color: var(--bg-main);
+  color: var(--bg-secondary);
   font-weight: 800;
   font-family: inherit;
   border: none;
@@ -209,7 +209,7 @@ body.state-cloud   .code-value { font-size: 48px; letter-spacing: 5px; }
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* Обрезаем всё, что вылезает */
+  overflow: hidden;
 }
 
 .cloud-inner {
