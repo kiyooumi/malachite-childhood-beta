@@ -67,7 +67,7 @@ body:not(.guest-body):not(.control-body) { overflow: hidden; }
 
 .btn {
   background: var(--accent-gold);
-  color: var(--bg-main);
+  color: var(--bg-secondary);
   border: none;
   border-radius: 12px;
   padding: 16px 32px;
