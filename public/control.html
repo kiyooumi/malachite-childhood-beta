@@ -107,7 +107,7 @@
       if (themeName && themeName !== 'default') document.body.classList.add(themeName);
     }
 
-    // СРАЗУ применяем сохраненную тему при загрузке пульта
+    // применяем сохраненную тему при загрузке пульта
     const savedTheme = localStorage.getItem('malachite-theme') || 'default';
     applyTheme(savedTheme);
 
