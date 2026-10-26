@@ -28,9 +28,9 @@ body.theme-blue {
 body.theme-gray {
   --bg-main: #D9D9D9;
   --bg-secondary: #FFFFFF;
-  --accent-teal: #C73D23;
-  --accent-orange: #FFA843;
-  --text-white: #C73D23;
+  --accent-teal: #262322;
+  --accent-orange: #B3AFA9;
+  --text-white: #141312;
   --text-light: #7F7F7F;
 }
 
