@@ -496,7 +496,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   display: flex; align-items: center; justify-content: center;
   padding: 14px 16px 4px;
 }
-.logo-small { height: 40px; width: auto; max-width: 60vw; object-fit: contain; }
+.logo-small { height: 70px; width: auto; max-width: 60vw; object-fit: contain; }
 .guest-wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 20px 16px; }
 .guest-card {
   background: var(--bg-secondary);
