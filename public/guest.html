@@ -9,7 +9,8 @@
 </head>
 <body class="guest-body">
   <header class="guest-header">
-    <img src="/logo.png" alt="Малахитовое детство" class="logo-small">
+    <!-- Добавлен ID guestLogo для смены логотипа -->
+    <img id="guestLogo" src="/logo.png" alt="Логотип" class="logo-small">
   </header>
 
   <main class="guest-wrap">
@@ -48,6 +49,7 @@
     const quotaBar = document.getElementById('quotaBar');
     const quotaText = document.getElementById('quotaText');
     const quotaFill = document.getElementById('quotaFill');
+    const guestLogo = document.getElementById('guestLogo'); // Элемент логотипа
 
     let currentCode = null;
     let limit = 0;
@@ -60,9 +62,14 @@
     }
 
     socket.on('themeUpdate', ({ code, theme }) => {
-      // Если гость уже в комнате, проверяем совпадение
       if (currentCode && code !== currentCode) return;
       applyTheme(theme);
+    });
+
+    // === СИНХРОНИЗАЦИЯ ЛОГОТИПА ===
+    socket.on('logoUpdate', ({ code, logo }) => {
+      if (currentCode && code !== currentCode) return;
+      if (logo) guestLogo.src = logo;
     });
 
     // === ЛОГИКА ГОСТЯ ===
@@ -123,10 +130,12 @@
       if (used < limit || limit === 0) { wordInput.focus(); showStatus('Слово «' + word + '» принято.', false); }
     });
 
-    socket.on('quotaUpdate', ({ code, used: u, limit: l, theme }) => {
+    // Получаем тему, логотип и квоту при входе в комнату
+    socket.on('quotaUpdate', ({ code, used: u, limit: l, theme, logo }) => {
       if (currentCode && code !== currentCode) return;
       currentCode = code; used = u; limit = l;
-      if (theme) applyTheme(theme); // Применяем тему, которую установил ведущий
+      if (theme) applyTheme(theme);
+      if (logo) guestLogo.src = logo; // Применяем логотип
       renderQuota();
     });
   </script>
