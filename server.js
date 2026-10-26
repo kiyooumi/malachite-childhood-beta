@@ -32,15 +32,15 @@ function serializeWords(cloud) {
 
 function stats(cloud) {
   return {
-    participants: cloud.participants.size,
+    participants: cloud.uniqueParticipants, // Отдаем исторический счетчик
     totalWords: Array.from(cloud.words.values()).reduce((a, b) => a + b, 0),
     locked: cloud.locked,
     uniqueWords: cloud.words.size,
     limitPerGuest: cloud.limitPerGuest,
     maxTotalWords: cloud.limitPerGuest > 0
-      ? cloud.participants.size * cloud.limitPerGuest
+      ? cloud.uniqueParticipants * cloud.limitPerGuest
       : null,
-    theme: cloud.theme // <-- Отдаем текущую тему всем
+    theme: cloud.theme
   };
 }
 
@@ -88,13 +88,6 @@ function sendQuota(socket, code) {
 io.on('connection', (socket) => {
   console.log('Подключение:', socket.id);
 
-  socket.on('hostChangeLogo', ({ code, logo }) => {
-    const cloud = clouds.get(code);
-    if (!cloud) return;
-    cloud.logo = logo; // Сохраняем Base64 картинки
-    io.emit('logoUpdate', { code, logo }); // Рассылаем всем
-  });
-
   socket.on('createCloud', (question) => {
     const q = String(question || '').trim() || 'Без вопроса';
     const code = generateCode();
@@ -106,7 +99,8 @@ io.on('connection', (socket) => {
       limitPerGuest: 0,
       locked: false,
       theme: 'default',
-      logo: null
+      logo: null,
+      uniqueParticipants: 0 // Новое поле для исторического счетчика
     });
     socket.data.role = 'host';
     socket.data.code = code;
@@ -131,9 +125,7 @@ io.on('connection', (socket) => {
 
     const used = guestUsed(cloud, socket.id);
     if (cloud.limitPerGuest > 0 && used >= cloud.limitPerGuest) {
-      socket.emit('errorMessage', {
-        message: `Лимит исчерпан: ${used} из ${cloud.limitPerGuest}`
-      });
+      socket.emit('errorMessage', { message: `Лимит исчерпан: ${used} из ${cloud.limitPerGuest}` });
       sendQuota(socket, code);
       return;
     }
@@ -141,16 +133,21 @@ io.on('connection', (socket) => {
     const finalKey = addWord(cloud, rawWord);
     if (!finalKey) return;
 
+    // Проверяем, новый ли это участник (исторически)
+    const wasNewParticipant = !cloud.participants.has(socket.id);
+
     cloud.participants.add(socket.id);
     cloud.guestCounts.set(socket.id, used + 1);
+    
+    // Увеличиваем исторический счетчик, если человек пишет впервые
+    if (wasNewParticipant) {
+      cloud.uniqueParticipants++;
+    }
+
     socket.data.code = code;
     socket.data.role = 'guest';
 
-    socket.emit('wordAccepted', {
-      word: finalKey,
-      used: used + 1,
-      limit: cloud.limitPerGuest
-    });
+    socket.emit('wordAccepted', { word: finalKey, used: used + 1, limit: cloud.limitPerGuest });
     broadcastCloud(code);
   });
 
@@ -160,14 +157,18 @@ io.on('connection', (socket) => {
     sendQuota(socket, c);
   });
 
-  // ===== Пульт ведущего =====
-
-  // Ведущий меняет тему
   socket.on('hostChangeTheme', ({ code, theme }) => {
     const cloud = clouds.get(code);
     if (!cloud) return;
     cloud.theme = theme || 'default';
-    io.emit('themeUpdate', { code, theme: cloud.theme }); // Рассылаем всем
+    io.emit('themeUpdate', { code, theme: cloud.theme });
+  });
+
+  socket.on('hostChangeLogo', ({ code, logo }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    cloud.logo = logo;
+    io.emit('logoUpdate', { code, logo });
   });
 
   socket.on('hostToggleLock', ({ code, locked }) => {
@@ -232,6 +233,7 @@ io.on('connection', (socket) => {
     cloud.words.clear();
     cloud.participants.clear();
     cloud.guestCounts.clear();
+    cloud.uniqueParticipants = 0; // Сбрасываем исторический счетчик
     broadcastCloud(code);
     for (const [id, s] of io.of('/').sockets) {
       if (s.data && s.data.code === code && s.data.role === 'guest') {
@@ -244,6 +246,7 @@ io.on('connection', (socket) => {
     for (const [code, cloud] of clouds.entries()) {
       if (cloud.participants.has(socket.id)) {
         cloud.participants.delete(socket.id);
+        // cloud.uniqueParticipants НЕ трогаем, он исторический
         broadcastCloud(code);
       }
     }
