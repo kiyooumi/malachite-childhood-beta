@@ -80,12 +80,20 @@ function sendQuota(socket, code) {
     code,
     used: guestUsed(cloud, socket.id),
     limit: cloud.limitPerGuest,
-    theme: cloud.theme // <-- Отдаем тему гостю при входе
+    theme: cloud.theme,
+    logo: cloud.logo
   });
 }
 
 io.on('connection', (socket) => {
   console.log('Подключение:', socket.id);
+
+  socket.on('hostChangeLogo', ({ code, logo }) => {
+    const cloud = clouds.get(code);
+    if (!cloud) return;
+    cloud.logo = logo; // Сохраняем Base64 картинки
+    io.emit('logoUpdate', { code, logo }); // Рассылаем всем
+  });
 
   socket.on('createCloud', (question) => {
     const q = String(question || '').trim() || 'Без вопроса';
@@ -97,12 +105,13 @@ io.on('connection', (socket) => {
       guestCounts: new Map(),
       limitPerGuest: 0,
       locked: false,
-      theme: 'default' // Тема по умолчанию
+      theme: 'default',
+      logo: null
     });
     socket.data.role = 'host';
     socket.data.code = code;
     console.log(`Облако ${code}: "${q}"`);
-    socket.emit('cloudCreated', { code, question: q, theme: 'default' });
+    socket.emit('cloudCreated', { code, question: q, theme: 'default', logo: null });
   });
 
   socket.on('submitWord', (payload) => {
