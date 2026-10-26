@@ -12,23 +12,35 @@
 </head>
 <body class="state-waiting">
 
-  <!-- КОНТЕЙНЕР ДЛЯ КНОПКИ ТЕМЫ -->
-  <div id="themeContainer" style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+  <!-- БЛОК КНОПОК В ЛЕВОМ ВЕРХНЕМ УГЛУ -->
+  <div id="themeContainer" style="position: fixed; top: 20px; left: 20px; z-index: 1000; display: flex; gap: 10px; align-items: flex-start;">
+    
+    <!-- 1. Кнопка темы -->
     <div class="theme-selector">
       <button id="themeBtn" class="theme-btn" type="button">🎨 Тема</button>
       <div id="themeMenu" class="theme-menu" hidden>
-        <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #004D3D;"></span> Малахитовая</button>
-        <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #E62D0F;"></span> Красная</button>
-        <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #3B8DC5;"></span> Синяя</button>
-        <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #D9D9D9;"></span> Серая</button>
+        <button class="theme-option" data-theme="default"><span class="theme-color-dot" style="background: #0F4D3A;"></span> Малахитовая</button>
+        <button class="theme-option" data-theme="theme-red"><span class="theme-color-dot" style="background: #4A0F16;"></span> Красная</button>
+        <button class="theme-option" data-theme="theme-blue"><span class="theme-color-dot" style="background: #0F2B4A;"></span> Синяя</button>
+        <button class="theme-option" data-theme="theme-gray"><span class="theme-color-dot" style="background: #2B2B2B;"></span> Серая</button>
       </div>
+    </div>
+
+    <!-- 2. Кнопка логотипа -->
+    <div>
+      <input type="file" id="logoInput" accept="image/*" hidden />
+      <button id="logoBtn" class="theme-btn" type="button" style="background: var(--accent-gold); color: var(--bg-main); border-color: var(--accent-gold);">
+        🖼️ Логотип
+      </button>
     </div>
   </div>
 
   <!-- ЭКРАН НАСТРОЙКИ -->
   <section id="setupScreen" class="setup-screen">
     <div class="setup-card">
-      <img src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
+      <!-- ID логотипа изменён на mainLogo, чтобы скрипт мог его найти -->
+      <img id="mainLogo" src="/logo.png" alt="Малахитовое детство" class="setup-logo" />
+      
       <h1 class="setup-title">Облако слов</h1>
       <p class="setup-subtitle">Задайте вопрос — гости ответят одним словом</p>
       <label class="label" for="questionInput">Вопрос аудитории</label>
@@ -75,7 +87,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    const themeContainer = document.getElementById('themeContainer'); // Контейнер кнопки
+    const themeContainer = document.getElementById('themeContainer');
     const setupScreen = document.getElementById('setupScreen');
     const roomScreen = document.getElementById('roomScreen');
     const questionInput = document.getElementById('questionInput');
@@ -90,14 +102,20 @@
     const joinLink = document.getElementById('joinLink');
     const copyBtn = document.getElementById('copyBtn');
     const pausedBadge = document.getElementById('pausedBadge');
+    
+    // Переменные для логотипа
+    const logoInput = document.getElementById('logoInput');
+    const logoBtn = document.getElementById('logoBtn');
+    const mainLogo = document.getElementById('mainLogo');
 
     let currentCode = null;
     let currentWords = [];
     let isLocked = false;
     let hasFirstWord = false;
     let selectedTheme = 'default';
+    let customLogoBase64 = null; // Тут храним загруженную картинку
 
-    // === ПЕРЕКЛЮЧАТЕЛЬ ТЕМ ===
+    // === ТЕМА ===
     const themeBtn = document.getElementById('themeBtn');
     const themeMenu = document.getElementById('themeMenu');
     const themeOptions = document.querySelectorAll('.theme-option');
@@ -117,6 +135,26 @@
         localStorage.setItem('malachite-theme', selectedTheme);
         themeMenu.hidden = true;
       });
+    });
+
+    // === ЛОГОТИП ===
+    logoBtn.addEventListener('click', () => logoInput.click());
+
+    logoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        customLogoBase64 = event.target.result;
+        mainLogo.src = customLogoBase64; // Меняем локально
+        
+        // Если облако уже создано, отправляем на сервер
+        if (currentCode) {
+          socket.emit('hostChangeLogo', { code: currentCode, logo: customLogoBase64 });
+        }
+      };
+      reader.readAsDataURL(file);
     });
 
     // === КОПИРОВАНИЕ ===
@@ -150,23 +188,25 @@
     });
     questionInput.addEventListener('keydown', e => { if (e.key === 'Enter') createBtn.click(); });
 
-    socket.on('cloudCreated', ({ code, question, theme }) => {
+    socket.on('cloudCreated', ({ code, question, theme, logo }) => {
       currentCode = code; currentWords = []; hasFirstWord = false; isLocked = false;
       
+      // Отправляем тему, если она отличается от дефолтной
       if (theme !== selectedTheme && currentCode) {
         socket.emit('hostChangeTheme', { code: currentCode, theme: selectedTheme });
-        applyTheme(selectedTheme);
-      } else {
-        applyTheme(theme);
+      }
+      applyTheme(selectedTheme);
+
+      // Отправляем логотип, если его загрузили ДО создания облака
+      if (customLogoBase64) {
+        socket.emit('hostChangeLogo', { code: currentCode, logo: customLogoBase64 });
       }
 
       document.body.classList.add('state-waiting'); document.body.classList.remove('state-cloud');
       
-      // ПРЯЧЕМ ЭКРАН НАСТРОЙКИ И КНОПКУ ТЕМЫ
+      // Прячем экран настройки и кнопки
       setupScreen.hidden = true; 
       themeContainer.hidden = true; 
-      
-      // ПОКАЗЫВАЕМ СЦЕНУ
       roomScreen.hidden = false;
       
       questionBanner.textContent = question; codeValue.textContent = code;
@@ -174,7 +214,7 @@
       const guestUrl = window.location.origin + '/guest?code=' + code;
       joinLink.textContent = guestUrl; joinLink.href = guestUrl;
       qrcodeEl.innerHTML = '';
-      new QRCode(qrcodeEl, { text: guestUrl, width: 220, height: 220, colorDark: '#0F0F0F', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
+      new QRCode(qrcodeEl, { text: guestUrl, width: 220, height: 220, colorDark: '#0F4D3A', colorLight: '#FFFFFF', correctLevel: QRCode.CorrectLevel.H });
       
       renderCloud([], 0, 0, false);
       window.open('/control.html?code=' + code, 'malachite-control', 'popup=yes,width=520,height=900');
@@ -190,7 +230,7 @@
       if (!nowHasWord && hasFirstWord) { hasFirstWord = false; document.body.classList.remove('state-cloud'); document.body.classList.add('state-waiting'); }
     });
 
-    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#E67A23'];
+    const COLORS = ['#FFFFFF', '#F2B705', '#E8A55A', '#C7E6DC'];
 
     function renderCloud(words, participants, totalWords, locked) {
       statWords.textContent = totalWords; statPeople.textContent = participants;
