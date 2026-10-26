@@ -496,7 +496,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
   display: flex; align-items: center; justify-content: center;
   padding: 14px 16px 4px;
 }
-.logo-small { height: 70px; width: auto; max-width: 60vw; object-fit: contain; }
+.logo-small { height: 80px; width: auto; max-width: 60vw; object-fit: contain; }
 .guest-wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; padding: 20px 16px; }
 .guest-card {
   background: var(--bg-secondary);
@@ -622,7 +622,7 @@ body.state-cloud   .side-qr .qr-box img { width: 150px !important; height: 150px
 
 @media (max-width: 480px) {
   .guest-header { padding: 10px 12px 2px; }
-  .logo-small { height: 64px; max-width: 70vw; }
+  .logo-small { height: 80px; max-width: 70vw; }
   .guest-wrap { padding: 12px 10px; }
   .guest-card { padding: 20px 16px; border-radius: 16px; max-width: 100%; }
   .guest-title { font-size: 19px; }
